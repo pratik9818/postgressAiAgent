@@ -1,0 +1,111 @@
+import { AppError } from '../utils/error.js';
+import database from '../database/db.js';
+
+class AuthModal {
+    constructor() {
+        // Remove immediate database access - make it lazy
+    }
+
+    // Helper method to get the users collection
+    getUsersCollection() {
+        return database.getDatabase().collection('users');
+    }
+
+    /**
+     * Find user by email
+     * @param {string} email - User's email
+     * @returns {Promise<Object|null>} User object or null if not found
+     */
+    async findUserByEmail(email) {
+        try {
+            const usersCollection = this.getUsersCollection();
+            
+            const user = await usersCollection.findOne({ email });
+            
+            return user;
+        } catch (error) {
+            console.error('Error finding user by email:', error);
+            throw new AppError({ status: 500, message: 'Database error while finding user' });
+        }
+    }
+
+    /**
+     * Create new user
+     * @param {string} email - User's email
+     * @param {string} username - User's name
+     * @param {string} googleId - Google ID
+     * @returns {Promise<Object>} Created user object
+     */
+    async createUser(email, username, googleId = null) {
+        try {
+            const usersCollection = this.getUsersCollection();
+            const userData = {
+                email,
+                username,
+                google_id: googleId,
+                last_login: new Date(),
+                created_at: new Date(),
+                updated_at: new Date()
+            };
+
+            const result = await usersCollection.insertOne(userData);
+            return { ...userData, _id: result.insertedId };
+        } catch (error) {
+            console.error('Error creating user:', error);
+            throw new AppError({ status: 500, message: 'Database error while creating user' });
+        }
+    }
+
+    /**
+     * Update user's last login
+     * @param {string} email - User's email
+     * @returns {Promise<Object>} Updated user object
+     */
+    async updateLastLogin(email) {
+        try {
+            const usersCollection = this.getUsersCollection();
+            const result = await usersCollection.findOneAndUpdate(
+                { email },
+                { 
+                    $set: { 
+                        last_login: new Date(),
+                        updated_at: new Date()
+                    }
+                },
+                { returnDocument: 'after' }
+            );
+            return result.value;
+        } catch (error) {
+            console.error('Error updating last login:', error);
+            throw new AppError({ status: 500, message: 'Database error while updating last login' });
+        }
+    }
+
+    /**
+     * Find or create user (upsert operation)
+     * @param {string} email - User's email
+     * @param {string} username - User's name
+     * @param {string} googleId - Google ID
+     * @returns {Promise<Object>} User object
+     */
+    async findOrCreateUser(email, username, googleId = null) {
+        try {
+            let user = await this.findUserByEmail(email);
+            
+            if (!user) {
+                user = await this.createUser(email, username, googleId);
+            } 
+            else {
+                // Update last login for existing user
+                await this.updateLastLogin(email);
+            }
+            // console.log(user,'user2');
+            return user;
+        } catch (error) {
+            console.error('Error in findOrCreateUser:', error);
+            throw error;
+        }
+    }
+}
+
+export default AuthModal;
