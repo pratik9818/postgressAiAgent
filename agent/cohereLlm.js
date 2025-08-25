@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 class CohereLLM {
     constructor(){
         this.llmModal = new CohereClientV2({
-            token:'OFdL2T9rZeenNeQkVItIoowM66YY429w0NISqIaf'
+            token:''
         });
     };
     // modal generate sql and decide to use tool or not
@@ -96,5 +96,6 @@ class CohereLLM {
     
 
 }
+
 
 export default CohereLLM;
