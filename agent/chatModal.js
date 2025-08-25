@@ -9,10 +9,9 @@ class ChatModal {
             const collection = await this.getCollection("chatHistory");
             const dbres = await collection.insertOne({
             userId:userid,
-            type: 'user',
+            role: 'user',
             createdAt: new Date(),
-            chat:query,
-            status: 'pending',
+            content:query,
             conversationId:conversationId
             })
             return dbres;
@@ -40,6 +39,18 @@ class ChatModal {
         const collection = await this.getCollection("chatHistory");
         const res = await collection.find({conversationId:conversationId,userId:userId}).sort({createdAt:-1}).limit(limit).toArray();
         return res;
+    }
+
+    async saveLlmChat(conversationId,userId,role,content){
+        const collection = await this.getCollection("chatHistory");
+        const dbres = await collection.insertOne({
+            conversationId:conversationId,
+            userId:userId,
+            role:role,
+            content:content,
+            createdAt:new Date()
+        })
+        return dbres;
     }
 }
 export default ChatModal;

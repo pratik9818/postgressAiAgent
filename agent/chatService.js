@@ -27,9 +27,11 @@ class ChatService {
 
     async sendUserQueryToQueue(query,userid,chatid,conversationId){
       const res =   await queryProcessingQueue.add('getUserDbInsight', {query,userid,chatid,conversationId});
-        console.log(res);
+        // console.log(res);
         // return d;
     }
+
+   
 }
 
 export default ChatService;
