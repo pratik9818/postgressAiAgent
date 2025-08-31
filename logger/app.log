@@ -1,0 +1,9 @@
+{"level":30,"time":"2025-08-31T11:34:34.446Z","pid":16876,"hostname":"LAPTOP-RCA0M9OR","msg":"SIGINT received, shutting down gracefully"}
+{"level":30,"time":"2025-08-31T15:03:04.766Z","pid":5140,"hostname":"LAPTOP-RCA0M9OR","name":"app","msg":"App logger initialized"}
+{"level":30,"time":"2025-08-31T15:03:12.140Z","pid":5140,"hostname":"LAPTOP-RCA0M9OR","name":"app","msg":"queue initialized"}
+{"level":30,"time":"2025-08-31T15:03:13.139Z","pid":5140,"hostname":"LAPTOP-RCA0M9OR","name":"app","msg":"Database connected successfully"}
+{"level":30,"time":"2025-08-31T15:03:13.148Z","pid":5140,"hostname":"LAPTOP-RCA0M9OR","name":"app","msg":"Server is running at http://localhost:3000"}
+{"level":30,"time":"2025-08-31T16:34:36.002Z","pid":5140,"hostname":"LAPTOP-RCA0M9OR","name":"app","msg":"SIGINT received, shutting down gracefully"}
+{"level":30,"time":"2025-08-31T16:35:48.913Z","pid":20432,"hostname":"LAPTOP-RCA0M9OR","name":"app","msg":"App logger initialized"}
+{"level":30,"time":"2025-08-31T16:37:28.442Z","pid":20196,"hostname":"LAPTOP-RCA0M9OR","name":"app","msg":"App logger initialized"}
+{"level":30,"time":"2025-08-31T16:39:02.874Z","pid":18176,"hostname":"LAPTOP-RCA0M9OR","name":"app","msg":"App logger initialized"}
