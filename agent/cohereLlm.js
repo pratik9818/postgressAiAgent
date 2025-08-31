@@ -6,7 +6,7 @@ dotenv.config();
 class CohereLLM {
     constructor(){
         this.llmModal = new CohereClientV2({
-            token:'OFdL2T9rZeenNeQkVItIoowM66YY429w0NISqIaf'
+            token:''
         });
     };
 
@@ -98,5 +98,6 @@ class CohereLLM {
       }
     }
 }
+
 
 export default CohereLLM;
