@@ -3,7 +3,7 @@ import { MongoClient } from 'mongodb';
 import {appLogger} from '../logger/pino.js'
 // dotenv.config();
 
-const url = 'mongodb+srv://pratiksingh212001:DpXSA3CN2kw1Hc5W@cluster0.7owzguo.mongodb.net/project0?retryWrites=true&w=majority';
+const url = '';
 
 class Database {
     constructor() {
@@ -52,3 +52,4 @@ const database = new Database()
 
 // Export the singleton instance
 export default database;
+
