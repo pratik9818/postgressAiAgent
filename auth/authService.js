@@ -1,6 +1,7 @@
 import AuthModal from './authModal.js';
 import GenerateAuthToken from './middleware/generateAuthToken.js';
 import { AppError } from '../utils/error.js';
+import { authLogger } from '../logger/pino.js';
 
 class AuthService {
     constructor() {
@@ -18,21 +19,23 @@ class AuthService {
         try {
             const email = req.email;
             const username = req.username;
-            
+            authLogger.info(email, 'email');
+            authLogger.info(username, 'username');
             if (!email || !username) {
                 throw new AppError({ status: 400, message: 'Email and username are required' });
             }
 
             // Find or create user in database
             const user = await this.authModal.findOrCreateUser(email, username);
-            
+            authLogger.info(user,'user found');
             if (!user) {
+                authLogger.error('Failed to process user authentication');
                 throw new AppError({ status: 500, message: 'Failed to process user authentication' });
             }
 
             // Generate JWT token
             const token = this.tokenGenerator.generateToken(user.email);
-
+            authLogger.info('token generated');
             // Prepare response data
             const responseData = {
                 success: true,
@@ -48,16 +51,16 @@ class AuthService {
                     expiresIn: this.tokenGenerator.expiresIn
                 }
             };
-
+            authLogger.info(responseData.user, 'responseData.user');
             // Send response
             res.status(200).json(responseData);
-
+            authLogger.info('response sent');
         } catch (error) {
-            console.error('Error in processGoogleAuth:', error);
-            
+            authLogger.error('Error in processGoogleAuth:', error);
             if (error instanceof AppError) {
                 next(error);
             } else {
+                authLogger.error('Error in processGoogleAuth:', error);
                 next(new AppError({ 
                     status: 500, 
                     message: 'Internal server error during authentication' 
@@ -75,32 +78,34 @@ class AuthService {
     async verifyAccessToken(req, res, next) {
         try {
             const authHeader = req.headers.authorization;
-            
             if (!authHeader) {
+                authLogger.error('Authorization header is required');
                 throw new AppError({ status: 401, message: 'Authorization header is required' });
             }
+            authLogger.info('authHeader successfully extracted');
 
             // Extract token from header
             const token = this.tokenGenerator.extractTokenFromHeader(authHeader);
-            
+            authLogger.info('token successfully extracted');
             // Verify token
             const decoded = this.tokenGenerator.verifyToken(token);
-            
+            authLogger.info('token verified');
             // Find user in database
             const user = await this.authModal.findUserByEmail(decoded.email);
-            
+            authLogger.info(user,'user found');
             if (!user) {
+                authLogger.error('User not found');
                 throw new AppError({ status: 401, message: 'User not found' });
             }
 
             // Attach user to request object
             req.user = user;
             req.token = decoded;
-            
+            authLogger.info(user,'user attached to request object');
             next();
 
         } catch (error) {
-            console.error('Error in verifyAccessToken:', error);
+            authLogger.error('Error in verifyAccessToken:', error);
             
             if (error instanceof AppError) {
                 next(error);
@@ -129,12 +134,11 @@ class AuthService {
                 success: true,
                 message: 'Logout successful'
             };
-
+            authLogger.info(responseData,'logout responseData');
             res.status(200).json(responseData);
-
+            authLogger.info('logout response sent');
         } catch (error) {
-            console.error('Error in logout:', error);
-            
+            authLogger.error('Error in logout:', error);
             if (error instanceof AppError) {
                 next(error);
             } else {
@@ -155,8 +159,9 @@ class AuthService {
     async getCurrentUser(req, res, next) {
         try {
             const user = req.user;
-            
+            authLogger.info(user,'user found');
             if (!user) {
+                authLogger.error('User not authenticated');
                 throw new AppError({ status: 401, message: 'User not authenticated' });
             }
 
@@ -171,11 +176,11 @@ class AuthService {
                     updatedAt: user.updated_at
                 }
             };
-
+            authLogger.info(responseData,'responseData');
             res.status(200).json(responseData);
 
         } catch (error) {
-            console.error('Error in getCurrentUser:', error);
+            authLogger.error('Error in getCurrentUser:', error);
             
             if (error instanceof AppError) {
                 next(error);

@@ -5,6 +5,8 @@ import database from './database/db.js';
 
 import authRoutes, { requireAuth } from './auth/authRoutes.js';
 import chatRoutes from './agent/chatRoutes.js';
+import clientDbRoutes from './clientDbAuth/dbRoutes.js';
+import {appLogger} from './logger/pino.js';
 // Load environment variables
 dotenv.config();
 
@@ -25,6 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/agent', chatRoutes);
+app.use('/api/clientdb', clientDbRoutes);
 
 // Protected route example
 app.get('/api/protected', requireAuth, (req, res) => {
@@ -46,12 +49,12 @@ app.get('/api/health', (req, res) => {
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-    console.error('Error:', error);
+    appLogger.error('Error:', error);
     
     if (error.status) {
         return res.status(error.status).json({
             success: false,
-            message: error.message
+            message: error
         });
     }
     
@@ -74,17 +77,14 @@ async function startServer() {
     try {
         await database.connect();
         console.log('Database connected successfully');
-        
+        appLogger.info('Database connected successfully');
         app.listen(port, () => {
             console.log(`Server is running at http://localhost:${port}`);
-            console.log('Available routes:');
-            console.log('- POST /api/auth/google - Google OAuth login');
-            console.log('- POST /api/auth/logout - Logout user');
-            console.log('- GET /api/auth/me - Get current user profile');
-            console.log('- GET /api/protected - Protected route example');
+            appLogger.info(`Server is running at http://localhost:${port}`);
         });
     } catch (error) {
         console.error('Failed to start server:', error);
+        appLogger.error('Failed to start server:', error);
         process.exit(1);
     }
 }
@@ -95,12 +95,16 @@ startServer();
 // Graceful shutdown
 process.on('SIGTERM', async () => {
     console.log('SIGTERM received, shutting down gracefully');
+    appLogger.info('SIGTERM received, shutting down gracefully');
     await database.disconnect();
     process.exit(0);
 });
 
 process.on('SIGINT', async () => {
     console.log('SIGINT received, shutting down gracefully');
+    appLogger.info('SIGINT received, shutting down gracefully');
+    // await worker.close();
+    // await connection.quit();
     await database.disconnect();
     process.exit(0);
 });

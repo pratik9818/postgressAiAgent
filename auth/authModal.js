@@ -1,5 +1,6 @@
 import { AppError } from '../utils/error.js';
 import database from '../database/db.js';
+import { authLogger } from '../logger/pino.js';
 
 class AuthModal {
     constructor() {
@@ -24,7 +25,7 @@ class AuthModal {
             
             return user;
         } catch (error) {
-            console.error('Error finding user by email:', error);
+            authLogger.error('Error finding user by email:', error);
             throw new AppError({ status: 500, message: 'Database error while finding user' });
         }
     }
@@ -51,7 +52,7 @@ class AuthModal {
             const result = await usersCollection.insertOne(userData);
             return { ...userData, _id: result.insertedId };
         } catch (error) {
-            console.error('Error creating user:', error);
+            authLogger.error('Error creating user:', error);
             throw new AppError({ status: 500, message: 'Database error while creating user' });
         }
     }
@@ -76,7 +77,7 @@ class AuthModal {
             );
             return result.value;
         } catch (error) {
-            console.error('Error updating last login:', error);
+            authLogger.error('Error updating last login:', error);
             throw new AppError({ status: 500, message: 'Database error while updating last login' });
         }
     }
@@ -102,8 +103,8 @@ class AuthModal {
             // console.log(user,'user2');
             return user;
         } catch (error) {
-            console.error('Error in findOrCreateUser:', error);
-            throw error;
+            authLogger.error('Error in findOrCreateUser:', error);
+            throw new AppError({ status: 500, message: 'Database error while finding or creating user' });
         }
     }
 }

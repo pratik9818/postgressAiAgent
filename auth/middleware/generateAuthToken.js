@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { AppError } from '../../utils/error.js';
+import { authLogger } from '../../logger/pino.js';
 
 class GenerateAuthToken {
     constructor() {
@@ -26,7 +27,7 @@ class GenerateAuthToken {
 
             return token;
         } catch (error) {
-            console.error('Error generating token:', error);
+            authLogger.error('Error generating token:', error);
             throw new AppError({ status: 500, message: 'Error generating authentication token' });
         }
     }
@@ -46,11 +47,13 @@ class GenerateAuthToken {
             return decoded;
         } catch (error) {
             if (error.name === 'JsonWebTokenError') {
+                authLogger.error('Error verifying token:', error);
                 throw new AppError({ status: 401, message: 'Invalid token' });
             } else if (error.name === 'TokenExpiredError') {
+                authLogger.error('Error verifying token:', error);
                 throw new AppError({ status: 401, message: 'Token expired' });
             } else {
-                console.error('Error verifying token:', error);
+                authLogger.error('Error verifying token:', error);
                 throw new AppError({ status: 500, message: 'Error verifying token' });
             }
         }
@@ -70,7 +73,8 @@ class GenerateAuthToken {
             const token = authHeader.substring(7); // Remove 'Bearer ' prefix
             return token;
         } catch (error) {
-            throw error;
+            authLogger.error('Error extracting token:', error);
+            throw new AppError({ status: 500, message: 'Error extracting token' });
         }
     }
 }

@@ -1,9 +1,9 @@
 import { MongoClient } from 'mongodb';
 // import dotenv from 'dotenv';
-
+import {appLogger} from '../logger/pino.js'
 // dotenv.config();
 
-const url = process.env.MONGODB_URI || '';
+const url = 'mongodb+srv://pratiksingh212001:DpXSA3CN2kw1Hc5W@cluster0.7owzguo.mongodb.net/project0?retryWrites=true&w=majority';
 
 class Database {
     constructor() {
@@ -24,13 +24,14 @@ class Database {
             }
             return this.db;
         } catch (error) {
-            console.error('MongoDB connection error:', error);
+            appLogger.error('MongoDB connection error:', error);
             throw error;
         }
     }
 
     getDatabase() {
         if (!this.isConnected) {
+            appLogger.error('Database not connected. Call connect() first.');
             throw new Error('Database not connected. Call connect() first.');
         }
         return this.db;
@@ -40,7 +41,7 @@ class Database {
         if (this.isConnected) {
             await this.client.close();
             this.isConnected = false;
-            console.log('MongoDB disconnected');
+            appLogger.info('MongoDB disconnected');
         }
     }
 }

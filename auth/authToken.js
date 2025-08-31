@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-
+import { authLogger } from '../logger/pino.js'; 
 /**
  * Utility class for token-related operations
  */
@@ -13,7 +13,7 @@ class AuthTokenUtils {
         try {
             return jwt.decode(token);
         } catch (error) {
-            console.error('Error decoding token:', error);
+            authLogger.error('Error decoding token:', error);
             return null;
         }
     }
