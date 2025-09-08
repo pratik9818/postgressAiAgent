@@ -2,18 +2,19 @@ import {CohereClientV2} from 'cohere-ai';
 import queryTool from './tools.js';
 import dotenv from 'dotenv';
 import {workerLogger} from '../logger/pino.js';
+import {cohereModal} from '../utils/constant.js';
 dotenv.config();
 class CohereLLM {
     constructor(){
         this.llmModal = new CohereClientV2({
-            token:''
+            token:'OFdL2T9rZeenNeQkVItIoowM66YY429w0NISqIaf'
         });
     };
 
     async toolSelection (userQuery){
       try {
         const response = await this.llmModal.chat({
-          model:'command-a-03-2025',
+          model:cohereModal.currentModal,
           messages:[
               {
                   role:'system',
@@ -26,6 +27,7 @@ class CohereLLM {
           ],
           tools:[queryTool],
       })
+      
       return response;
       } catch (error) {
         workerLogger.error(error, "error in tool selection");
@@ -36,7 +38,7 @@ class CohereLLM {
     async llmModalResponse(toolid , result , messages , modalres,toolCalls){
       try {
         const res =  await this.llmModal.chat({
-            model: 'command-a-03-2025',
+            model: cohereModal.currentModal,
             messages: [
               {
                 role: 'system',
@@ -58,7 +60,7 @@ class CohereLLM {
               }
             ]
           });
-          return res.message.content[0];
+          return res;
       } catch (error) {
         workerLogger.error(error, "error in final llm modal response");
         throw error;
@@ -69,7 +71,7 @@ class CohereLLM {
       try {
         
         const res =  await this.llmModal.chat({
-            model: 'command-a-03-2025',
+            model: cohereModal.currentModal,
             messages: [
               {
                 role: 'system',
@@ -98,6 +100,5 @@ class CohereLLM {
       }
     }
 }
-
 
 export default CohereLLM;

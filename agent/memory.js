@@ -7,7 +7,7 @@ class Memory {
     this.userQuery = userQuery;
     this.chatId = chatId;
     this.userId = userId;
-    this.chatsLimit = 10;
+    this.chatsLimit = 1;
   }
   async getDatabaseSchema() {
     // here i have connect user db and get his db schema for more context - i have to think how to do this !

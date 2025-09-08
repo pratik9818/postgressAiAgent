@@ -5,6 +5,7 @@ import CohereLLM from "./cohereLlm.js";
 import database from "../database/db.js";
 import SQLExecutor from "./sqlExecutor.js";
 import { workerLogger } from "../logger/pino.js";
+import TokenTracker from "../tokenTracker/tokenTracker.js";
 
 // Queue monitoring and health check
 let jobStats = {
@@ -146,7 +147,8 @@ const worker = new Worker(
     try {
       // Validate job data first
       validateJobData(job.data);
-
+      const tokenTracker = new TokenTracker();
+      
       // Get memory context
       workerLogger.info("getting memory context of", job.data.chatid);
       let memory;
@@ -161,6 +163,7 @@ const worker = new Worker(
         );
         memoryContext = await memory.memoryContext();
         workerLogger.info(memoryContext, "memory context");
+        await tokenTracker.track(job.data.userid, memoryContext, 'beforeLLM' , 0);
         await job.updateProgress(10);
       } catch (error) {
         workerLogger.error("Failed to get memory context:", error);
@@ -172,7 +175,15 @@ const worker = new Worker(
       let response;
       try {
         response = await cohereLlm.toolSelection(memoryContext);
+        console.log(response.usage.tokens);
+        
         workerLogger.info(response, "tool calls");
+        console.log(response.usage.tokens,'response.usage.tokens');
+        
+        const tokens = response.usage.tokens.inputTokens + response.usage.tokens.outputTokens
+        console.log(tokens);
+        
+        await tokenTracker.track(job.data.userid,'','afterLLM',tokens);
         await job.updateProgress(25);
       } catch (error) {
         workerLogger.error("Failed to get tool selection from LLM:", error);
@@ -224,6 +235,7 @@ const worker = new Worker(
         workerLogger.error("Failed to execute SQL:", error);
         throw new Error(`SQL execution error: ${error}`);
       }
+      await tokenTracker.track(job.data.userid, result , 'beforeLLM' ,0);
 
       if (result.err) {
         // Handle SQL validation error with retry logic
@@ -238,7 +250,8 @@ const worker = new Worker(
             result.err
           );
           workerLogger.info(finalResponse, "final response");
-
+          const tokens = finalResponse.usage.tokens.inputTokens + finalResponse.usage.tokens.outputTokens
+          await tokenTracker.track(job.data.userid,'','afterLLM',tokens);
           // Save error response
           try {
             const savellmRes2 = await memory.saveLlmResponse(
@@ -275,19 +288,21 @@ const worker = new Worker(
           );
         }
       }
-
       // Get final response from modal
       workerLogger.info("getting final response from ai modal");
-      let finalResponse;
+      let content
       try {
-        finalResponse = await cohereLlm.llmModalResponse(
+       const finalResponse = await cohereLlm.llmModalResponse(
           id,
           result,
           job.data.query,
           response,
           response.message.toolCalls
         );
+         content = finalResponse.message.content[0]
         workerLogger.info(finalResponse, "final response");
+        const tokens = finalResponse.usage.tokens.inputTokens + finalResponse.usage.tokens.outputTokens
+        await tokenTracker.track(job.data.userid,'','afterLLM',tokens);
         await job.updateProgress(80);
       } catch (error) {
         workerLogger.error("Failed to get final response from LLM:", error);
@@ -301,7 +316,7 @@ const worker = new Worker(
           job.data.conversationId,
           job.data.userid,
           "assistant",
-          finalResponse.text
+          content.text
         );
         workerLogger.info(savellmRes2, "saved llm chat");
         await job.updateProgress(100);
@@ -321,7 +336,7 @@ const worker = new Worker(
       );
       return {
         success: true,
-        response: finalResponse.text,
+        response: content.text,
         conversationId: job.data.conversationId,
         data: result,
       };
