@@ -7,7 +7,7 @@ class Memory {
     this.userQuery = userQuery;
     this.chatId = chatId;
     this.userId = userId;
-    this.chatsLimit = 1;
+    this.chatsLimit = 2;
   }
   async getDatabaseSchema() {
     // here i have connect user db and get his db schema for more context - i have to think how to do this !
@@ -42,9 +42,9 @@ class Memory {
       const chatSummary = await this.getSummary();
 
       const lastChats = await this.getLastChats();
-
+      
       const context = `Conversation summary: ${chatSummary?.summary}
-    Recent chat history: ${lastChats.map((chat) => chat.chat).join("\n")}
+    Recent chat history: ${lastChats.map((chat) => chat.content).join("\n")}
     Current user request: ${this.userQuery}
 `;
       return context;

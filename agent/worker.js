@@ -192,10 +192,24 @@ const worker = new Worker(
 
       // Validate response structure
       if (!response?.message?.toolCalls?.[0]) {
-        workerLogger.error(
-          "Invalid LLM response structure - missing tool calls"
-        );
-        throw new Error("Invalid LLM response structure - missing tool calls");
+          workerLogger.info("missing tool calls---------------------------");
+          const savellmRes2 = await memory.saveLlmResponse(
+            job.data.conversationId,
+            job.data.userid,
+            "assistant",
+            response.message.content[0].text
+          );
+          workerLogger.info(savellmRes2, "saved llm chat");
+          await job.updateProgress(100);
+          
+        return {
+          success: true,
+          response:  response.message.content[0].text,
+          conversationId: job.data.conversationId,
+          result:null
+        };
+      
+        // throw new Error("Invalid LLM response structure - missing tool calls");
       }
 
       const {
@@ -377,14 +391,14 @@ const worker = new Worker(
   },
   {
     connection,
-    maxStalledCount: 2,
-    stalledInterval: 30000,
-    removeOnComplete: 1000, // Keep last 1000 completed jobs in memory
+    // maxStalledCount: 0,
+    // stalledInterval: 30000,
+    // removeOnComplete: 1000, // Keep last 1000 completed jobs in memory
     removeOnFail: 500, // Keep last 500 failed jobs in memory
-    attempts: 3, // Retry failed jobs up to 3 times
-    backoff: CURRENT_CONFIG.backoff,
-    timeout: CURRENT_CONFIG.timeout,
-    concurrency: CURRENT_CONFIG.concurrency,
+    attempts: 1, // Retry failed jobs up to 3 times
+    // backoff: CURRENT_CONFIG.backoff,
+    // timeout: CURRENT_CONFIG.timeout,
+    // concurrency: CURRENT_CONFIG.concurrency,
   }
 );
 
