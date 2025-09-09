@@ -10,7 +10,7 @@ class ClientDatabase {
   constructor() {
     this.dbModal = new DbModel();
     this.algorithm = 'aes-256-gcm';
-    this.encryptKey = '';
+    this.encryptKey = 'c26695908d8321be61fbc657e90b19f0813eba48fac7f6148a246cbebf27d99a';
     this.IV_LENGTH = 16;
   }
   async saveDBCredentials(req, res, next) {

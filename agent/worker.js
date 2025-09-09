@@ -7,6 +7,10 @@ import SQLExecutor from "./sqlExecutor.js";
 import { workerLogger } from "../logger/pino.js";
 import TokenTracker from "../tokenTracker/tokenTracker.js";
 
+
+//NOTE - I THINK I SHOULD RETURN THE DB RESULT TO CLIENT IF TOKEN LIMIT EXCEED SO DESPITE THE SENDING ALL RESULT TO LLM IN CASE OF TOKEN LIMIT EXCEED JUST RETURN DATA DIRECTLY TO FROTEND --------------------------------
+
+
 // Queue monitoring and health check
 let jobStats = {
   totalProcessed: 0,
@@ -162,6 +166,8 @@ const worker = new Worker(
           job.data.userid
         );
         memoryContext = await memory.memoryContext();
+        const schema = await sqlExecutor.getUserDbSchema(job.data.userid);
+        memoryContext += `\n\nUser database schema: ${schema}`;
         workerLogger.info(memoryContext, "memory context");
         await tokenTracker.track(job.data.userid, memoryContext, 'beforeLLM' , 0);
         await job.updateProgress(10);
@@ -235,23 +241,29 @@ const worker = new Worker(
 
       // Validate SQL and call function
       workerLogger.info("validating sql and calling function");
-      let result;
+      let result ;
+      let error;
       try {
-        result = await sqlExecutor.executionBrain(
+        const {result:res,error:erra} = await sqlExecutor.executionBrain(
           toolname,
           sqlquery,
           job.data.userid
         );
+        result = res ;
+        error = erra;
+        workerLogger.info(result , error);
+        
         workerLogger.info(result, "fetched user data according to user query");
-        workerLogger.info(result.err, "result error");
+        workerLogger.info(error, "result error");
         await job.updateProgress(60);
       } catch (error) {
         workerLogger.error("Failed to execute SQL:", error);
         throw new Error(`SQL execution error: ${error}`);
       }
-      await tokenTracker.track(job.data.userid, result , 'beforeLLM' ,0);
-
-      if (result.err) {
+      
+      
+      if (error) {
+        await tokenTracker.track(job.data.userid, error , 'beforeLLM' ,0);
         // Handle SQL validation error with retry logic
         workerLogger.warn(
           "SQL validation error detected, generating error response"
@@ -261,7 +273,8 @@ const worker = new Worker(
             job.data.query,
             response,
             response.message.toolCalls,
-            result.err
+            error,
+            id
           );
           workerLogger.info(finalResponse, "final response");
           const tokens = finalResponse.usage.tokens.inputTokens + finalResponse.usage.tokens.outputTokens
@@ -272,7 +285,7 @@ const worker = new Worker(
               job.data.conversationId,
               job.data.userid,
               "assistant",
-              finalResponse.text
+              finalResponse.message.content[0].text
             );
             workerLogger.info(savellmRes2, "saved llm chat");
           } catch (saveError) {
@@ -289,7 +302,7 @@ const worker = new Worker(
           return {
             success: false,
             error: result.err,
-            response: finalResponse.text,
+            response: finalResponse.message.content[0].text,
             conversationId: job.data.conversationId,
           };
         } catch (error) {
@@ -302,6 +315,7 @@ const worker = new Worker(
           );
         }
       }
+      await tokenTracker.track(job.data.userid, result , 'beforeLLM' ,0);
       // Get final response from modal
       workerLogger.info("getting final response from ai modal");
       let content

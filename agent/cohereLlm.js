@@ -67,7 +67,7 @@ class CohereLLM {
       }
     }
 
-    async queryValidationErrorResponse( messages , modalres,toolCalls,error){
+    async queryValidationErrorResponse( messages , modalres,toolCalls,error,toolid){
       try {
         
         const res =  await this.llmModal.chat({
@@ -75,7 +75,7 @@ class CohereLLM {
             messages: [
               {
                 role: 'system',
-                content: `You are an expert SQL agent. generate SELECT queries and execute them on a PostgreSQL database.`
+                content: `You are an expert in error and explain reason why query excuation failed.`
               },
               {
                 role: 'user',
@@ -87,12 +87,13 @@ class CohereLLM {
                 toolCalls: toolCalls
               },
               {
-                role: 'user',
-                content: error 
+                role: 'tool',
+                toolCallId: toolid,
+                content: error
               }
             ]
           });
-          return res.message.content[0];
+          return res;
       } catch (error) {
         workerLogger.error(error, "error in query validation error response in llm modal");
         throw error;

@@ -44,7 +44,7 @@ class Memory {
       const lastChats = await this.getLastChats();
       
       const context = `Conversation summary: ${chatSummary?.summary}
-    Recent chat history: ${lastChats.map((chat) => chat.content).join("\n")}
+    Recent chat history: ${lastChats.map((chat) => chat?.content).join("\n")}
     Current user request: ${this.userQuery}
 `;
       return context;

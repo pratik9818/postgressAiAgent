@@ -58,7 +58,6 @@ class TokenTracker {
       text,
       model: cohereModal.currentModal,
     });
-    workerLogger.info(response, "textToToken");
     workerLogger.info(response.tokens.length, "TOKEN LENGTH");
     return response.tokens.length;
   }
