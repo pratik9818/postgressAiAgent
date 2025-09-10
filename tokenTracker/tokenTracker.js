@@ -33,7 +33,7 @@ class TokenTracker {
           this.tokenLimit = subscriptionModal.free.tokenLimit;
           if (subscriptionModal.free.tokenLimit < this.TokenUsed) {
             workerLogger.error("you reached your token limit");
-            throw new Error("you reached your token limit");
+            throw new Error("token limit");
           }
         }
         const tokens = await this.textToToken(text);

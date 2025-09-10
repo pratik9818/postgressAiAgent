@@ -16,7 +16,8 @@ class SQLValidator {
             'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT',
             'LIMIT', 'OFFSET', 'DISTINCT', 'AS', 'ON', 'AND', 'OR', 'NOT',
             'IN', 'EXISTS', 'BETWEEN', 'LIKE', 'ILIKE', 'IS NULL', 'IS NOT NULL',
-            'COUNT', 'SUM', 'AVG', 'MAX', 'MIN', 'COALESCE', 'NULLIF'
+            'COUNT', 'SUM', 'AVG', 'MAX', 'MIN', 'COALESCE', 'NULLIF',
+            'WITH', 'RECURSIVE' // CTE keywords
         ];
 
         // Maximum query length to prevent resource exhaustion
@@ -106,16 +107,30 @@ class SQLValidator {
             warnings: []
         };
 
-        // Check for basic SELECT statement structure
-        // More flexible pattern that handles various SELECT query formats
-        const selectPattern = /^SELECT\s+.+FROM\s+.+/i;
+        // Check for basic SELECT statement structure or CTE (WITH) queries
         const hasSelect = /^SELECT\s+/i.test(sql);
+        const hasWith = /^WITH\s+/i.test(sql);
         const hasFrom = /\bFROM\s+/i.test(sql);
         
-        if (!hasSelect || !hasFrom) {
-            workerLogger.error('Query must start with SELECT and contain FROM clause');
+        // Allow queries that start with SELECT or WITH (CTE)
+        if (!hasSelect && !hasWith) {
+            workerLogger.error('Query must start with SELECT or WITH clause');
             result.isValid = false;
-            result.errors.push('Query must start with SELECT and contain FROM clause');
+            result.errors.push('Query must start with SELECT or WITH clause');
+        }
+        
+        // CTE queries must contain FROM clause in the final SELECT
+        if (hasWith && !hasFrom) {
+            workerLogger.error('CTE queries must contain FROM clause in the final SELECT');
+            result.isValid = false;
+            result.errors.push('CTE queries must contain FROM clause in the final SELECT');
+        }
+        
+        // Regular SELECT queries must contain FROM clause
+        if (hasSelect && !hasWith && !hasFrom) {
+            workerLogger.error('SELECT queries must contain FROM clause');
+            result.isValid = false;
+            result.errors.push('SELECT queries must contain FROM clause');
         }
 
         // Check for balanced parentheses
@@ -217,10 +232,10 @@ class SQLValidator {
             warnings: []
         };
 
-        // Ensure query starts with SELECT
-        if (!sql.startsWith('SELECT')) {
+        // Ensure query starts with SELECT or WITH (for CTE queries)
+        if (!sql.startsWith('SELECT') && !sql.startsWith('WITH')) {
             result.isValid = false;
-            result.errors.push('Only SELECT queries are allowed');
+            result.errors.push('Only SELECT or WITH (CTE) queries are allowed');
         }
 
         // Check for any non-SELECT operations

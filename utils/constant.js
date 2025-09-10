@@ -14,3 +14,5 @@ export const subscriptionModal = {
         tokenLimit:1000000
     }
 }
+
+export const rowLimit = 100 // for now keep it as , later create congif object based on plan like free can get 100 rows or premuim use can get 10k rows or even data size 

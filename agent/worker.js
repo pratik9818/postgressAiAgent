@@ -7,9 +7,7 @@ import SQLExecutor from "./sqlExecutor.js";
 import { workerLogger } from "../logger/pino.js";
 import TokenTracker from "../tokenTracker/tokenTracker.js";
 
-
 //NOTE - I THINK I SHOULD RETURN THE DB RESULT TO CLIENT IF TOKEN LIMIT EXCEED SO DESPITE THE SENDING ALL RESULT TO LLM IN CASE OF TOKEN LIMIT EXCEED JUST RETURN DATA DIRECTLY TO FROTEND --------------------------------
-
 
 // Queue monitoring and health check
 let jobStats = {
@@ -86,42 +84,42 @@ const sqlExecutor = new SQLExecutor();
 const WORKER_CONFIG = {
   // Concurrency Options (choose one):
   CONCURRENCY: {
-    CONSERVATIVE: 1,    // Safe, one job at a time
-    MODERATE: 2,        // Balanced performance
-    AGGRESSIVE: 3,      // High performance (test first)
-    CUSTOM: 2           // Your choice
+    CONSERVATIVE: 1, // Safe, one job at a time
+    MODERATE: 2, // Balanced performance
+    AGGRESSIVE: 3, // High performance (test first)
+    CUSTOM: 2, // Your choice
   },
-  
+
   // Timeout Options (in milliseconds):
   TIMEOUT: {
-    SHORT: 30000,       // 30 seconds - for simple queries
-    MEDIUM: 60000,     // 60 seconds - current setting
-    LONG: 600000,       // 10 minutes - for complex operations
-    CUSTOM: 300000      // Your choice
+    SHORT: 30000, // 30 seconds - for simple queries
+    MEDIUM: 60000, // 60 seconds - current setting
+    LONG: 600000, // 10 minutes - for complex operations
+    CUSTOM: 300000, // Your choice
   },
-  
+
   // Backoff Options:
   BACKOFF: {
     FAST: {
       type: "fixed",
-      delay: 1000       // 1 second between retries
+      delay: 1000, // 1 second between retries
     },
     MODERATE: {
       type: "exponential",
-      delay: 2000       // Current setting: 2s, 4s, 8s...
+      delay: 2000, // Current setting: 2s, 4s, 8s...
     },
     SLOW: {
-      type: "exponential", 
-      delay: 50000       // 5s, 10s, 20s...
-    }
-  }
+      type: "exponential",
+      delay: 50000, // 5s, 10s, 20s...
+    },
+  },
 };
 
 // Current configuration (modify these values to test)
 const CURRENT_CONFIG = {
-  concurrency: WORKER_CONFIG.CONCURRENCY.CONSERVATIVE, 
+  concurrency: WORKER_CONFIG.CONCURRENCY.CONSERVATIVE,
   timeout: WORKER_CONFIG.TIMEOUT.SHORT,
-  backoff: WORKER_CONFIG.BACKOFF.SLOW           // Exponential 2s
+  backoff: WORKER_CONFIG.BACKOFF.SLOW, // Exponential 2s
 };
 
 // Validate job data
@@ -152,7 +150,7 @@ const worker = new Worker(
       // Validate job data first
       validateJobData(job.data);
       const tokenTracker = new TokenTracker();
-      
+
       // Get memory context
       workerLogger.info("getting memory context of", job.data.chatid);
       let memory;
@@ -169,7 +167,12 @@ const worker = new Worker(
         const schema = await sqlExecutor.getUserDbSchema(job.data.userid);
         memoryContext += `\n\nUser database schema: ${schema}`;
         workerLogger.info(memoryContext, "memory context");
-        await tokenTracker.track(job.data.userid, memoryContext, 'beforeLLM' , 0);
+        await tokenTracker.track(
+          job.data.userid,
+          memoryContext,
+          "beforeLLM",
+          0
+        );
         await job.updateProgress(10);
       } catch (error) {
         workerLogger.error("Failed to get memory context:", error);
@@ -182,14 +185,16 @@ const worker = new Worker(
       try {
         response = await cohereLlm.toolSelection(memoryContext);
         console.log(response.usage.tokens);
-        
+
         workerLogger.info(response, "tool calls");
-        console.log(response.usage.tokens,'response.usage.tokens');
-        
-        const tokens = response.usage.tokens.inputTokens + response.usage.tokens.outputTokens
+        console.log(response.usage.tokens, "response.usage.tokens");
+
+        const tokens =
+          response.usage.tokens.inputTokens +
+          response.usage.tokens.outputTokens;
         console.log(tokens);
-        
-        await tokenTracker.track(job.data.userid,'','afterLLM',tokens);
+
+        await tokenTracker.track(job.data.userid, "", "afterLLM", tokens);
         await job.updateProgress(25);
       } catch (error) {
         workerLogger.error("Failed to get tool selection from LLM:", error);
@@ -198,23 +203,23 @@ const worker = new Worker(
 
       // Validate response structure
       if (!response?.message?.toolCalls?.[0]) {
-          workerLogger.info("missing tool calls---------------------------");
-          const savellmRes2 = await memory.saveLlmResponse(
-            job.data.conversationId,
-            job.data.userid,
-            "assistant",
-            response.message.content[0].text
-          );
-          workerLogger.info(savellmRes2, "saved llm chat");
-          await job.updateProgress(100);
-          
+        workerLogger.info("missing tool calls---------------------------");
+        const savellmRes2 = await memory.saveLlmResponse(
+          job.data.conversationId,
+          job.data.userid,
+          "assistant",
+          response.message.content[0].text
+        );
+        workerLogger.info(savellmRes2, "saved llm chat");
+        await job.updateProgress(100);
+
         return {
           success: true,
-          response:  response.message.content[0].text,
+          response: response.message.content[0].text,
           conversationId: job.data.conversationId,
-          result:null
+          result: null,
         };
-      
+
         // throw new Error("Invalid LLM response structure - missing tool calls");
       }
 
@@ -241,18 +246,18 @@ const worker = new Worker(
 
       // Validate SQL and call function
       workerLogger.info("validating sql and calling function");
-      let result ;
+      let result;
       let error;
       try {
-        const {result:res,error:erra} = await sqlExecutor.executionBrain(
+        const { result: res, error: erra } = await sqlExecutor.executionBrain(
           toolname,
           sqlquery,
           job.data.userid
         );
-        result = res ;
+        result = res;
         error = erra;
-        workerLogger.info(result , error);
-        
+        workerLogger.info(result, error);
+
         workerLogger.info(result, "fetched user data according to user query");
         workerLogger.info(error, "result error");
         await job.updateProgress(60);
@@ -260,10 +265,9 @@ const worker = new Worker(
         workerLogger.error("Failed to execute SQL:", error);
         throw new Error(`SQL execution error: ${error}`);
       }
-      
-      
+
       if (error) {
-        await tokenTracker.track(job.data.userid, error , 'beforeLLM' ,0);
+        await tokenTracker.track(job.data.userid, error, "beforeLLM", 0);
         // Handle SQL validation error with retry logic
         workerLogger.warn(
           "SQL validation error detected, generating error response"
@@ -277,8 +281,10 @@ const worker = new Worker(
             id
           );
           workerLogger.info(finalResponse, "final response");
-          const tokens = finalResponse.usage.tokens.inputTokens + finalResponse.usage.tokens.outputTokens
-          await tokenTracker.track(job.data.userid,'','afterLLM',tokens);
+          const tokens =
+            finalResponse.usage.tokens.inputTokens +
+            finalResponse.usage.tokens.outputTokens;
+          await tokenTracker.track(job.data.userid, "", "afterLLM", tokens);
           // Save error response
           try {
             const savellmRes2 = await memory.saveLlmResponse(
@@ -315,22 +321,41 @@ const worker = new Worker(
           );
         }
       }
-      await tokenTracker.track(job.data.userid, result , 'beforeLLM' ,0);
+
+      try {
+        await tokenTracker.track(job.data.userid, result, "beforeLLM", 0);
+      } catch (error) {
+        //res back result if token limit exceed
+        workerLogger.error(
+          "token limit exceed , sending result to frontend without sending result to llm modal",
+          error
+        );
+
+        await job.updateProgress(100);
+        return {
+          success: true,
+          error: result,
+          response: "raw result",
+          conversationId: job.data.conversationId,
+        };
+      }
       // Get final response from modal
       workerLogger.info("getting final response from ai modal");
-      let content
+      let content;
       try {
-       const finalResponse = await cohereLlm.llmModalResponse(
+        const finalResponse = await cohereLlm.llmModalResponse(
           id,
           result,
           job.data.query,
           response,
           response.message.toolCalls
         );
-         content = finalResponse.message.content[0]
+        content = finalResponse.message.content[0];
         workerLogger.info(finalResponse, "final response");
-        const tokens = finalResponse.usage.tokens.inputTokens + finalResponse.usage.tokens.outputTokens
-        await tokenTracker.track(job.data.userid,'','afterLLM',tokens);
+        const tokens =
+          finalResponse.usage.tokens.inputTokens +
+          finalResponse.usage.tokens.outputTokens;
+        await tokenTracker.track(job.data.userid, "", "afterLLM", tokens);
         await job.updateProgress(80);
       } catch (error) {
         workerLogger.error("Failed to get final response from LLM:", error);
@@ -452,7 +477,7 @@ worker.on("failed", (job, err) => {
   } else if (err.message.includes("LLM")) {
     workerLogger.error("Job failed due to LLM service error");
   }
-  
+
   workerLogger.info(`Remaining concurrent jobs: ${jobStats.concurrentJobs}`);
 });
 
