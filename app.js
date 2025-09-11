@@ -1,17 +1,16 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import database from './database/db.js';
 
 import authRoutes, { requireAuth } from './auth/authRoutes.js';
 import chatRoutes from './agent/chatRoutes.js';
 import clientDbRoutes from './clientDbAuth/dbRoutes.js';
 import {appLogger} from './logger/pino.js';
+import realChatRoutes from './chat/routes.js';
 // Load environment variables
-dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
 
 // Middleware
 app.use(cors({
@@ -28,7 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/agent', chatRoutes);
 app.use('/api/clientdb', clientDbRoutes);
-
+app.use('/api',realChatRoutes)
 // Protected route example
 app.get('/api/protected', requireAuth, (req, res) => {
     res.json({
