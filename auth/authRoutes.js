@@ -17,19 +17,5 @@ authRoutes.post('/logout', (req, res, next) => {
     authService.logout(req, res, next);
 });
 
-// Get current user profile (protected route)
-authRoutes.get('/me', (req, res, next) => {
-    authService.verifyAccessToken(req, res, (err) => {
-        if (err) {
-            return next(err);
-        }
-        authService.getCurrentUser(req, res, next);
-    });
-});
-
-// Middleware to verify access token for protected routes
-export const requireAuth = (req, res, next) => {
-    authService.verifyAccessToken(req, res, next);
-};
 
 export default authRoutes;

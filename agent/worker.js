@@ -184,15 +184,12 @@ const worker = new Worker(
       let response;
       try {
         response = await cohereLlm.toolSelection(memoryContext);
-        console.log(response.usage.tokens);
 
         workerLogger.info(response, "tool calls");
-        console.log(response.usage.tokens, "response.usage.tokens");
 
         const tokens =
           response.usage.tokens.inputTokens +
           response.usage.tokens.outputTokens;
-        console.log(tokens);
 
         await tokenTracker.track(job.data.userid, "", "afterLLM", tokens);
         await job.updateProgress(25);
@@ -329,13 +326,13 @@ const worker = new Worker(
         workerLogger.error(
           "token limit exceed , sending result to frontend without sending result to llm modal",
           error
-        );
+        );  
 
         await job.updateProgress(100);
         return {
           success: true,
-          error: result,
-          response: "raw result",
+          data: result,
+          response: 'token limit reached',
           conversationId: job.data.conversationId,
         };
       }

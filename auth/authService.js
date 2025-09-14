@@ -1,5 +1,5 @@
 import AuthModal from './authModal.js';
-import GenerateAuthToken from './middleware/generateAuthToken.js';
+import GenerateAuthToken from './middleware/authTokenService.js';
 import { AppError } from '../utils/error.js';
 import { authLogger } from '../logger/pino.js';
 
@@ -19,6 +19,7 @@ class AuthService {
         try {
             const email = req.email;
             const username = req.username;
+            
             authLogger.info(email, 'email');
             authLogger.info(username, 'username');
             if (!email || !username) {
@@ -27,6 +28,7 @@ class AuthService {
 
             // Find or create user in database
             const user = await this.authModal.findOrCreateUser(email, username);
+            
             authLogger.info(user,'user found');
             if (!user) {
                 authLogger.error('Failed to process user authentication');
@@ -34,17 +36,14 @@ class AuthService {
             }
 
             // Generate JWT token
-            const token = this.tokenGenerator.generateToken(user.email);
+            const token = this.tokenGenerator.generateToken(user._id);
             authLogger.info('token generated');
             // Prepare response data
             const responseData = {
                 success: true,
                 message: 'Authentication successful',
                 user: {
-                    id: user._id,
-                    email: user.email,
                     username: user.username,
-                    lastLogin: user.last_login
                 },
                 token: {
                     accessToken: token,
@@ -75,48 +74,48 @@ class AuthService {
      * @param {Object} res - Express response object
      * @param {Function} next - Express next function
      */
-    async verifyAccessToken(req, res, next) {
-        try {
-            const authHeader = req.headers.authorization;
-            if (!authHeader) {
-                authLogger.error('Authorization header is required');
-                throw new AppError({ status: 401, message: 'Authorization header is required' });
-            }
-            authLogger.info('authHeader successfully extracted');
+    // async verifyAccessToken(req, res, next) {
+    //     try {
+    //         const authHeader = req.headers.authorization;
+    //         if (!authHeader) {
+    //             authLogger.error('Authorization header is required');
+    //             throw new AppError({ status: 401, message: 'Authorization header is required' });
+    //         }
+    //         authLogger.info('authHeader successfully extracted');
 
-            // Extract token from header
-            const token = this.tokenGenerator.extractTokenFromHeader(authHeader);
-            authLogger.info('token successfully extracted');
-            // Verify token
-            const decoded = this.tokenGenerator.verifyToken(token);
-            authLogger.info('token verified');
-            // Find user in database
-            const user = await this.authModal.findUserByEmail(decoded.email);
-            authLogger.info(user,'user found');
-            if (!user) {
-                authLogger.error('User not found');
-                throw new AppError({ status: 401, message: 'User not found' });
-            }
+    //         // Extract token from header
+    //         const token = this.tokenGenerator.extractTokenFromHeader(authHeader);
+    //         authLogger.info('token successfully extracted');
+    //         // Verify token
+    //         const decoded = this.tokenGenerator.verifyToken(token);
+    //         authLogger.info('token verified');
+    //         // Find user in database
+    //         const user = await this.authModal.findUserByUserid(decoded._id);
+    //         authLogger.info(user,'user found');
+    //         if (!user) {
+    //             authLogger.error('User not found');
+    //             throw new AppError({ status: 401, message: 'User not found' });
+    //         }
 
-            // Attach user to request object
-            req.user = user;
-            req.token = decoded;
-            authLogger.info(user,'user attached to request object');
-            next();
+    //         // Attach user to request object
+    //         req.user = user;
+    //         req.token = decoded;
+    //         authLogger.info(user,'user attached to request object');
+    //         next();
 
-        } catch (error) {
-            authLogger.error('Error in verifyAccessToken:', error);
+    //     } catch (error) {
+    //         authLogger.error('Error in verifyAccessToken:', error);
             
-            if (error instanceof AppError) {
-                next(error);
-            } else {
-                next(new AppError({ 
-                    status: 401, 
-                    message: 'Invalid or expired token' 
-                }));
-            }
-        }
-    }
+    //         if (error instanceof AppError) {
+    //             next(error);
+    //         } else {
+    //             next(new AppError({ 
+    //                 status: 401, 
+    //                 message: 'Invalid or expired token' 
+    //             }));
+    //         }
+    //     }
+    // }
 
     /**
      * Logout user (invalidate tokens)

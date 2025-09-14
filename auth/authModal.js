@@ -1,7 +1,7 @@
 import { AppError } from '../utils/error.js';
 import database from '../database/db.js';
 import { authLogger } from '../logger/pino.js';
-
+import { ObjectId } from 'mongodb';
 class AuthModal {
     constructor() {
         // Remove immediate database access - make it lazy
@@ -14,9 +14,20 @@ class AuthModal {
 
     /**
      * Find user by email
-     * @param {string} email - User's email
      * @returns {Promise<Object|null>} User object or null if not found
      */
+    async findUserByUserid(userId) {
+        try {
+            const usersCollection = this.getUsersCollection();
+            
+            const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+            
+            return user;
+        } catch (error) {
+            authLogger.error('Error finding user by userid:', error);
+            throw new AppError({ status: 500, message: 'Database error while finding user' });
+        }
+    }
     async findUserByEmail(email) {
         try {
             const usersCollection = this.getUsersCollection();
@@ -73,7 +84,6 @@ class AuthModal {
 
     /**
      * Update user's last login
-     * @param {string} email - User's email
      * @returns {Promise<Object>} Updated user object
      */
     async updateLastLogin(email) {

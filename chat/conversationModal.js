@@ -20,11 +20,12 @@ class ConversationModal {
     }
   }
 
-  async getConversation(userId){
+  async getConversation(userId,skipvalue){
     try {
         const collection = this.getCollection('conversation')
         const res = await collection.find({userId: userId})
         .sort({ updatedAt: -1 })
+        .skip(skipvalue)
         .limit(10)
         .toArray();
 

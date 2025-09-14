@@ -7,14 +7,15 @@ class ChatService {
   }
 
   async processUserQuery(req, res, next) {
-    const { query, userid, conversationId } = req.body;
+    const { query, conversationId } = req.body;
     appLogger.info(query, 'query');
-    appLogger.info(userid, 'userid');
     appLogger.info(conversationId, 'conversationId');
     // const userid = req.userid
     if (!query) return res.status(400).json({ message: "Query is required" });
-    if (!conversationId)
-      return res.status(400).json({ message: "Conversation id is required" });
+    if (!conversationId) return res.status(400).json({ message: "Conversation id is required" });
+
+    const userid = req.userId;
+
     try {
       const dbres = await this.chatModal.saveUserQuery(
         query,
