@@ -2,11 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import database from './database/db.js';
 
-import authRoutes, { requireAuth } from './auth/authRoutes.js';
+import authRoutes from './auth/authRoutes.js';
 import chatRoutes from './agent/chatRoutes.js';
 import clientDbRoutes from './clientDbAuth/dbRoutes.js';
 import {appLogger} from './logger/pino.js';
 import realChatRoutes from './chat/routes.js';
+import verifyJwtToken from './auth/middleware/verifyJwtToken.js';
 // Load environment variables
 
 const app = express();
@@ -22,18 +23,18 @@ app.use(express.urlencoded({ extended: true }));
 
 
 
-
 // Routes
 app.use('/api/auth', authRoutes);
+app.use(verifyJwtToken);
 app.use('/api/agent', chatRoutes);
 app.use('/api/clientdb', clientDbRoutes);
 app.use('/api',realChatRoutes)
 // Protected route example
-app.get('/api/protected', requireAuth, (req, res) => {
+app.get('/api/protected', (req, res) => {
     res.json({
         success: true,
         message: 'This is a protected route',
-        user: req.user
+        user: req.userId
     });
 });
 
