@@ -205,7 +205,8 @@ const worker = new Worker(
           job.data.conversationId,
           job.data.userid,
           "assistant",
-          response.message.content[0].text
+          response.message.content[0].text,
+          null
         );
         workerLogger.info(savellmRes2, "saved llm chat");
         await job.updateProgress(100);
@@ -214,7 +215,7 @@ const worker = new Worker(
           success: true,
           response: response.message.content[0].text,
           conversationId: job.data.conversationId,
-          result: null,
+          dbData: null,
         };
 
         // throw new Error("Invalid LLM response structure - missing tool calls");
@@ -288,7 +289,8 @@ const worker = new Worker(
               job.data.conversationId,
               job.data.userid,
               "assistant",
-              finalResponse.message.content[0].text
+              finalResponse.message.content[0].text,
+              null
             );
             workerLogger.info(savellmRes2, "saved llm chat");
           } catch (saveError) {
@@ -307,6 +309,7 @@ const worker = new Worker(
             error: result.err,
             response: finalResponse.message.content[0].text,
             conversationId: job.data.conversationId,
+            dbData:null
           };
         } catch (error) {
           workerLogger.error(
@@ -334,6 +337,7 @@ const worker = new Worker(
           data: result,
           response: 'token limit reached',
           conversationId: job.data.conversationId,
+          dbData:result
         };
       }
       // Get final response from modal
@@ -366,7 +370,8 @@ const worker = new Worker(
           job.data.conversationId,
           job.data.userid,
           "assistant",
-          content.text
+          content.text,
+          result
         );
         workerLogger.info(savellmRes2, "saved llm chat");
         await job.updateProgress(100);
@@ -388,7 +393,7 @@ const worker = new Worker(
         success: true,
         response: content.text,
         conversationId: job.data.conversationId,
-        data: result,
+        dbData: result,
       };
     } catch (error) {
       workerLogger.error("Critical error in worker:", error);
@@ -422,6 +427,7 @@ const worker = new Worker(
         conversationId: job.data?.conversationId,
         jobId: job.data?.id,
         userId: job.data?.userid,
+        dbData:null
       };
     }
   },

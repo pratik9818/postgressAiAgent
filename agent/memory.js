@@ -53,13 +53,14 @@ class Memory {
       throw error;
     }
   }
-  async saveLlmResponse(conversationId, userId, role, content) {
+  async saveLlmResponse(conversationId, userId, role, content,dbData) {
     try {
       return await this.chatModal.saveLlmChat(
         conversationId,
         userId,
         role,
-        content
+        content,
+        dbData
       );
     } catch (error) {
       workerLogger.error(error, "error in saving llm response");

@@ -45,7 +45,7 @@ class ChatModal {
     try {
       const collection = await this.getCollection("chatHistory");
       const res = await collection
-        .find({ conversationId: conversationId, userId: userId })
+        .find({ conversationId: conversationId, userId: userId  })
         .sort({ createdAt: -1 })
         .limit(limit)
         .toArray();
@@ -56,7 +56,7 @@ class ChatModal {
     }
   }
 
-  async saveLlmChat(conversationId, userId, role, content) {
+  async saveLlmChat(conversationId, userId, role, content,dbData) {
     try {
       const collection = await this.getCollection("chatHistory");
       const dbres = await collection.insertOne({
@@ -65,6 +65,7 @@ class ChatModal {
         role: role,
         content: content,
         createdAt: new Date(),
+        dbData: dbData
       });
       return dbres;
     } catch (error) {

@@ -17,5 +17,14 @@ class ChatModal {
         throw new Error(error);
        }
     }
+    async getChatDbData(userId, chatId){
+        try {
+            const collection = this.getCollection('chatHistory')
+            const res = await collection.findOne({ userId: userId, _id: new ObjectId(chatId) });
+            return res;
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
 }
 export default ChatModal;

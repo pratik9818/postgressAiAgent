@@ -47,7 +47,6 @@ class CohereLLM {
                       Your tasks:
                       1. Understand the result set and what it means in the context of the SQL query and in the context of the user query.
                       2. Provide a short, clear summary of the key insight 
-                      3. apart from insight give also all data of sql result
                       `
           },
           {

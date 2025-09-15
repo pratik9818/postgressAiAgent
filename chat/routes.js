@@ -11,4 +11,5 @@ route.put('/conversation', conversationService.updateConversationName.bind(conve
 route.delete('/conversation', conversationService.deleteConversation.bind(conversationService));
 
 route.get('/chats', chatService.getchats.bind(chatService));
+route.get('/chat/dbdata', chatService.getchatDbdata.bind(chatService));
 export default route;

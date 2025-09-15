@@ -29,6 +29,7 @@ class ConversationService {
         const skipvalue = req.query.skipvalue || 0;
         try {
             const result = await this.chatModal.getConversation(userId,skipvalue);
+            
             appLogger.info(result , 'conversation fetched successfully');
             res.status(200).json({
                 message: 'Conversation fetched successfully',
