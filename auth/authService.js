@@ -44,6 +44,7 @@ class AuthService {
                 message: 'Authentication successful',
                 user: {
                     username: user.username,
+                    dbPassword: user.dbPassword
                 },
                 token: {
                     accessToken: token,
@@ -172,7 +173,8 @@ class AuthService {
                     username: user.username,
                     lastLogin: user.last_login,
                     createdAt: user.created_at,
-                    updatedAt: user.updated_at
+                    updatedAt: user.updated_at,
+                    dbPassword: user.dbPassword
                 }
             };
             authLogger.info(responseData,'responseData');

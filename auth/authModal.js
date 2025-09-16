@@ -40,15 +40,17 @@ class AuthModal {
             throw new AppError({ status: 500, message: 'Database error while finding user' });
         }
     }
-    async addSubscription(userid){
+    async addSubscription(userId){
+        
         try {
-            await database.collection('subscription').insertOne({
-                userid,
+            await database.getDatabase().collection('subscription').insertOne({
+                userId: userId.toString(),
                 tokenUsage: 0,
                 created_at: new Date(),
                 updated_at: new Date(),
                 subscription_type: 'free'
             })
+            
         } catch (error) {
             authLogger.error('Error adding subscription:', error);
             throw new AppError({ status: 500, message: 'Database error while adding subscription' });
@@ -70,7 +72,8 @@ class AuthModal {
                 google_id: googleId,
                 last_login: new Date(),
                 created_at: new Date(),
-                updated_at: new Date()
+                updated_at: new Date(),
+                dbPassword: null
             };
             
             const result = await usersCollection.insertOne(userData);

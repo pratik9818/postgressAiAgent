@@ -48,21 +48,15 @@ app.get('/api/health', (req, res) => {
 });
 
 // Error handling middleware
-app.use((error, req, res, next) => {
-    appLogger.error('Error:', error);
-    
-    if (error.status) {
-        return res.status(error.status).json({
-            success: false,
-            message: error
-        });
-    }
-    
-    res.status(500).json({
-        success: false,
-        message: 'Internal server error'
-    });
-});
+app.use((err, req, res, next) => {
+    console.error("Error middleware caught:", err);
+  
+    const status = err.status || 500;
+    const message = err.message || "Internal Server Error";
+  
+    res.status(status).json({ message });
+  });
+  
 
 // 404 handler
 app.use('*', (req, res) => {

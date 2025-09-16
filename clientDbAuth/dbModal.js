@@ -20,7 +20,7 @@ class DbModel {
             },
           }
         );
-
+        this.updateUser(userId);
         return updatedRes;
       } else {
         const newRes = await collection.insertOne({
@@ -29,6 +29,7 @@ class DbModel {
           createdAt: new Date(),
           updatedAt: new Date(),
         });
+        this.updateUser(userId);
         return newRes;
       }
     } catch (error) {
@@ -37,6 +38,19 @@ class DbModel {
     }
   }
 
+  async updateUser(userId) {
+    try {
+      const collection = await this.getCollection("users");
+      await collection.updateOne(
+        { userId: userId },
+        { $set: { dbPassword: true } }
+      );
+      return true;
+    } catch (error) {
+      appLogger.error(error);
+      throw error;
+    }
+  }
   async getDBCredentials(userId) {
     try {
       const collection = await this.getCollection("userDbCredentials");

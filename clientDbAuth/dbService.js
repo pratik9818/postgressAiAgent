@@ -16,10 +16,9 @@ class ClientDatabase {
   async saveDBCredentials(req, res, next) {
     try {
       const userDbCredentials = req.body;
-      const userId = req.userId || "1";
+      const userId = req.userId;
       appLogger.info(userId, 'userId');
-      const encryptedDBCredentials =
-        this.encryptDBCredentials(userDbCredentials);
+      const encryptedDBCredentials = this.encryptDBCredentials(userDbCredentials);
       const savedDBCredentials = await this.dbModal.saveDBCredentials(
         encryptedDBCredentials,
         userId
@@ -81,7 +80,7 @@ class ClientDatabase {
 
   async getDBCredentials(req, res, next) {
     try {
-      const userId = req.userId || "1";
+      const userId = req.userId;
       appLogger.info(userId, 'userId');
       const response = await this.dbModal.getDBCredentials(userId);
       appLogger.info(response);
@@ -102,7 +101,7 @@ class ClientDatabase {
   }
   async deleteDBCredentials(req, res, next) {
     try {
-      const userId = req.userId || "1";
+      const userId = req.userId;
       appLogger.info(userId, 'userId');
       const response = await this.dbModal.deleteDBCredentials(userId);
       appLogger.info(response);
