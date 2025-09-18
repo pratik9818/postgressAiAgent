@@ -73,5 +73,18 @@ class ChatModal {
       throw error;
     }
   }
+  async isUserHasDbCredentials(userId) {
+    try {
+      const collection = await this.getCollection("userDbCredentials");
+      const res = await collection.findOne(
+        { userId: userId },
+        {projection:{dbPassword:1}}
+      );
+      return res;
+    } catch (error) {
+      workerLogger.error(error, "error in checking if user has db credentials");
+      throw error;
+    }
+  }
 }
 export default ChatModal;

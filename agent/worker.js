@@ -145,7 +145,7 @@ const worker = new Worker(
       "-------------------------------------------------------"
     );
     workerLogger.info(job.data, "new job come");
-
+    let globalToolCallRes = null
     try {
       // Validate job data first
       validateJobData(job.data);
@@ -184,7 +184,20 @@ const worker = new Worker(
       let response;
       try {
         response = await cohereLlm.toolSelection(memoryContext);
-
+        
+        // Handle different response structures
+        if (response.message.content && response.message.content[0] && response.message.content[0].text) {
+          // Old structure: response.message.content[0].text
+          globalToolCallRes = response.message.content[0].text;
+        } else if (response.message.toolPlan) {
+          // New structure: response.message.toolPlan
+          globalToolCallRes = response.message.toolPlan;
+        } else {
+          // Fallback: try to extract any text content
+          globalToolCallRes = JSON.stringify(response.message);
+        }
+        
+        workerLogger.info(globalToolCallRes, "globalToolCallRes");
         workerLogger.info(response, "tool calls");
 
         const tokens =
@@ -194,6 +207,10 @@ const worker = new Worker(
         await tokenTracker.track(job.data.userid, "", "afterLLM", tokens);
         await job.updateProgress(25);
       } catch (error) {
+        workerLogger.error(response);
+        
+        workerLogger.error(error, "error in tool selection");
+        
         workerLogger.error("Failed to get tool selection from LLM:", error);
         throw new Error(`LLM tool selection error: ${error}`);
       }
@@ -201,11 +218,13 @@ const worker = new Worker(
       // Validate response structure
       if (!response?.message?.toolCalls?.[0]) {
         workerLogger.info("missing tool calls---------------------------");
+        
+        // Use the globalToolCallRes we already extracted above
         const savellmRes2 = await memory.saveLlmResponse(
           job.data.conversationId,
           job.data.userid,
-          "assistant",
-          response.message.content[0].text,
+          "assistant-tool-call",
+          globalToolCallRes,
           null
         );
         workerLogger.info(savellmRes2, "saved llm chat");
@@ -213,14 +232,14 @@ const worker = new Worker(
 
         return {
           success: true,
-          response: response.message.content[0].text,
+          response: globalToolCallRes,
           conversationId: job.data.conversationId,
-          dbData: null,
+          dbData: null
         };
 
         // throw new Error("Invalid LLM response structure - missing tool calls");
       }
-
+      
       const {
         id,
         function: { name: toolname, arguments: sqlquery },
@@ -229,11 +248,16 @@ const worker = new Worker(
       // Save LLM response and tools called in db
       workerLogger.info("saving llm response and tools called in db");
       try {
+        const toolCallText = response.message.toolPlan ? 
+          response.message.toolPlan + " " + JSON.stringify(response.message.toolCalls[0]) :
+          globalToolCallRes + " " + JSON.stringify(response.message.toolCalls[0]);
+          
         const savellmRes = await memory.saveLlmResponse(
           job.data.conversationId,
           job.data.userid,
-          "assistant",
-          response.message.toolPlan + " " + response.message.toolCalls[0]
+          "assistant-tool-call",
+          toolCallText,
+          null
         );
         workerLogger.info(savellmRes, "saved llm chat");
         await job.updateProgress(40);
@@ -309,7 +333,8 @@ const worker = new Worker(
             error: result.err,
             response: finalResponse.message.content[0].text,
             conversationId: job.data.conversationId,
-            dbData:null
+            dbData:null,
+            toolCall: globalToolCallRes
           };
         } catch (error) {
           workerLogger.error(
@@ -326,18 +351,34 @@ const worker = new Worker(
         await tokenTracker.track(job.data.userid, result, "beforeLLM", 0);
       } catch (error) {
         //res back result if token limit exceed
+        let errorCause = null;
+        if(error.message == 'token limit'){
+          errorCause = 'token limit';
+        }else if(error.message == 'context window exceeded'){
+          errorCause = 'context window exceeded';
+        }else{
+          errorCause = error?.message;
+        }
         workerLogger.error(
-          "token limit exceed , sending result to frontend without sending result to llm modal",
+        errorCause,
           error
         );  
-
+        const savellmRes2 = await memory.saveLlmResponse(
+          job.data.conversationId,
+          job.data.userid,
+          "assistant",
+          errorCause,
+          result
+        );
+        workerLogger.info(savellmRes2, "saved llm chat");
         await job.updateProgress(100);
         return {
           success: true,
           data: result,
-          response: 'token limit reached',
+          response: errorCause,
           conversationId: job.data.conversationId,
-          dbData:result
+          dbData:result,
+          toolCall: globalToolCallRes
         };
       }
       // Get final response from modal
@@ -394,6 +435,7 @@ const worker = new Worker(
         response: content.text,
         conversationId: job.data.conversationId,
         dbData: result,
+        toolCall: globalToolCallRes
       };
     } catch (error) {
       workerLogger.error("Critical error in worker:", error);
@@ -418,6 +460,7 @@ const worker = new Worker(
         workerLogger.error("Failed to save final response in db:", saveError);
         throw new Error(`Failed to save final response in db: ${saveError}`);
       }
+      console.log(globalToolCallRes);
 
       // Return structured error response
       return {
@@ -427,7 +470,8 @@ const worker = new Worker(
         conversationId: job.data?.conversationId,
         jobId: job.data?.id,
         userId: job.data?.userid,
-        dbData:null
+        dbData:null,
+        toolCall: globalToolCallRes
       };
     }
   },

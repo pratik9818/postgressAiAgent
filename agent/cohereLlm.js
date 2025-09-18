@@ -18,7 +18,7 @@ class CohereLLM {
         messages: [
           {
             role: "system",
-            content: `You are an expert SQL agent. generate only read queries with limit ${rowLimit}.`,
+            content: `You are an expert SQL agent keep in mind that call tools once per user query. generate only read queries with limit ${rowLimit}.`,
           },
           {
             role: "user",
@@ -42,12 +42,19 @@ class CohereLLM {
         messages: [
           {
             role: "system",
-            content: `You are a data interpretation assistant. 
-                      The user asked a question that was converted into SQL and executed on their PostgreSQL database. 
-                      Your tasks:
-                      1. Understand the result set and what it means in the context of the SQL query and in the context of the user query.
-                      2. Provide a short, clear summary of the key insight 
-                      `
+            content: `You are a data interpretation assistant.  
+The user asked a question that was converted into SQL and executed on their PostgreSQL database.  
+
+Your responsibilities:
+1. Analyze the SQL query and the result set together to understand what the data represents.  
+2. Interpret the results **in the context of the user’s original question** — not just in database terms.  
+3. Summarize findings in a clear, human-friendly way, highlighting **patterns, trends, anomalies, or key takeaways**.  
+4. Where useful, include **comparisons, percentages, averages, or counts** to make insights more meaningful.  
+5. Avoid repeating raw SQL or database jargon unless necessary; always explain in plain language.  
+6. If the result set is empty, explain possible reasons and suggest next steps (e.g., adjusting filters, checking data availability).  
+7. Keep your response concise but **insight-rich**, structured, and directly actionable for the user.  
+
+                      `,
           },
           {
             role: "user",
