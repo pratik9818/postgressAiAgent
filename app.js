@@ -50,11 +50,44 @@ app.get('/api/health', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error("Error middleware caught:", err);
+    appLogger.error("Error middleware caught:", err);
   
     const status = err.status || 500;
     const message = err.message || "Internal Server Error";
-  
-    res.status(status).json({ message });
+    
+    // Determine error type for frontend handling
+    let errorType = 'UNKNOWN_ERROR';
+    if (status === 401) {
+        errorType = 'AUTHENTICATION_ERROR';
+    } else if (status === 403) {
+        errorType = 'AUTHORIZATION_ERROR';
+    } else if (status === 404) {
+        errorType = 'NOT_FOUND_ERROR';
+    } else if (status === 400) {
+        errorType = 'VALIDATION_ERROR';
+    } else if (status >= 500) {
+        errorType = 'SERVER_ERROR';
+    }
+    
+    // Structured error response for frontend
+    const errorResponse = {
+        success: false,
+        error: {
+            type: errorType,
+            message: message,
+            status: status,
+            timestamp: new Date().toISOString(),
+            path: req.path,
+            method: req.method
+        }
+    };
+    
+    // Add stack trace in development mode
+    if (process.env.NODE_ENV === 'development') {
+        errorResponse.error.stack = err.stack;
+    }
+    
+    res.status(status).json(errorResponse);
   });
   
 
@@ -62,7 +95,14 @@ app.use((err, req, res, next) => {
 app.use('*', (req, res) => {
     res.status(404).json({
         success: false,
-        message: 'Route not found'
+        error: {
+            type: 'NOT_FOUND_ERROR',
+            message: 'Route not found',
+            status: 404,
+            timestamp: new Date().toISOString(),
+            path: req.path,
+            method: req.method
+        }
     });
 });
 

@@ -26,7 +26,7 @@ class authTokenService {
             return token;
         } catch (error) {
             authLogger.error('Error generating token:', error);
-            throw new AppError({ status: 500, message: 'Error generating authentication token' });
+            throw new AppError(500, 'Error generating authentication token');
         }
     }
 
@@ -38,7 +38,7 @@ class authTokenService {
     verifyToken(token) {
         try {
             if (!token) {
-                throw new AppError({ status: 401, message: 'No token provided' });
+                throw new AppError(401, 'No token provided');
             }
 
             const decoded = jwt.verify(token, this.secretKey);
@@ -46,13 +46,13 @@ class authTokenService {
         } catch (error) {
             if (error.name === 'JsonWebTokenError') {
                 authLogger.error('Error verifying token:', error);
-                throw new AppError({ status: 401, message: 'Invalid token' });
+                throw new AppError(401, 'Invalid token');
             } else if (error.name === 'TokenExpiredError') {
                 authLogger.error('Error verifying token:', error);
-                throw new AppError({ status: 401, message: 'Token expired' });
+                throw new AppError(401, 'Token expired');
             } else {
                 authLogger.error('Error verifying token:', error);
-                throw new AppError({ status: 500, message: 'Error verifying token' });
+                throw new AppError(500, 'Error verifying token');
             }
         }
     }
@@ -65,14 +65,14 @@ class authTokenService {
     extractTokenFromHeader(authHeader) {
         try {
             if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                throw new AppError({ status: 401, message: 'Invalid authorization header format' });
+                throw new AppError(401, 'Invalid authorization header format');
             }
 
             const token = authHeader.substring(7); // Remove 'Bearer ' prefix
             return token;
         } catch (error) {
             authLogger.error('Error extracting token:', error);
-            throw new AppError({ status: 500, message: 'Error extracting token' });
+            throw new AppError(500, 'Error extracting token');
         }
     }
 
@@ -84,13 +84,13 @@ class authTokenService {
     extractTokenFromQuery(query) {
         try {
             if (!query || !query.token) {
-                throw new AppError({ status: 401, message: 'Token is required in query parameters' });
+                throw new AppError(401, 'Token is required in query parameters');
             }
 
             return query.token;
         } catch (error) {
             authLogger.error('Error extracting token from query:', error);
-            throw new AppError({ status: 500, message: 'Error extracting token from query' });
+            throw new AppError(500, 'Error extracting token from query');
         }
     }
 }

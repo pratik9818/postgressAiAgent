@@ -23,7 +23,7 @@ class AuthService {
             authLogger.info(email, 'email');
             authLogger.info(username, 'username');
             if (!email || !username) {
-                throw new AppError({ status: 400, message: 'Email and username are required' });
+                throw new AppError(400, 'Email and username are required');
             }
 
             // Find or create user in database
@@ -32,7 +32,7 @@ class AuthService {
             authLogger.info(user,'user found');
             if (!user) {
                 authLogger.error('Failed to process user authentication');
-                throw new AppError({ status: 500, message: 'Failed to process user authentication' });
+                throw new AppError(500, 'Failed to process user authentication');
             }
 
             // Generate JWT token
@@ -61,10 +61,7 @@ class AuthService {
                 next(error);
             } else {
                 authLogger.error('Error in processGoogleAuth:', error);
-                next(new AppError({ 
-                    status: 500, 
-                    message: 'Internal server error during authentication' 
-                }));
+                next(new AppError(500, 'Internal server error during authentication'));
             }
         }
     }
@@ -142,10 +139,7 @@ class AuthService {
             if (error instanceof AppError) {
                 next(error);
             } else {
-                next(new AppError({ 
-                    status: 500, 
-                    message: 'Internal server error during logout' 
-                }));
+                next(new AppError(500, 'Internal server error during logout'));
             }
         }
     }
@@ -162,7 +156,7 @@ class AuthService {
             authLogger.info(user,'user found');
             if (!user) {
                 authLogger.error('User not authenticated');
-                throw new AppError({ status: 401, message: 'User not authenticated' });
+                throw new AppError(401, 'User not authenticated');
             }
 
             const responseData = {
@@ -186,10 +180,7 @@ class AuthService {
             if (error instanceof AppError) {
                 next(error);
             } else {
-                next(new AppError({ 
-                    status: 500, 
-                    message: 'Internal server error while fetching user profile' 
-                }));
+                next(new AppError(500, 'Internal server error while fetching user profile'));
             }
         }
     }

@@ -25,7 +25,7 @@ class AuthModal {
             return user;
         } catch (error) {
             authLogger.error('Error finding user by userid:', error);
-            throw new AppError({ status: 500, message: 'Database error while finding user' });
+            throw new AppError(500, 'Database error while finding user');
         }
     }
     async findUserByEmail(email) {
@@ -37,7 +37,7 @@ class AuthModal {
             return user;
         } catch (error) {
             authLogger.error('Error finding user by email:', error);
-            throw new AppError({ status: 500, message: 'Database error while finding user' });
+            throw new AppError(500, 'Database error while finding user');
         }
     }
     async addSubscription(userId){
@@ -53,7 +53,7 @@ class AuthModal {
             
         } catch (error) {
             authLogger.error('Error adding subscription:', error);
-            throw new AppError({ status: 500, message: 'Database error while adding subscription' });
+            throw new AppError(500, 'Database error while adding subscription');
         }
     }
     /**
@@ -81,7 +81,7 @@ class AuthModal {
             return { ...userData, _id: result.insertedId };
         } catch (error) {
             authLogger.error('Error creating user:', error);
-            throw new AppError({ status: 500, message: 'Database error while creating user' });
+            throw new AppError(500, 'Database error while creating user');
         }
     }
 
@@ -105,7 +105,7 @@ class AuthModal {
             return result.value;
         } catch (error) {
             authLogger.error('Error updating last login:', error);
-            throw new AppError({ status: 500, message: 'Database error while updating last login' });
+            throw new AppError(500, 'Database error while updating last login');
         }
     }
 
@@ -131,7 +131,7 @@ class AuthModal {
             return user;
         } catch (error) {
             authLogger.error('Error in findOrCreateUser:', error);
-            throw new AppError({ status: 500, message: 'Database error while finding or creating user' });
+            throw new AppError(500, 'Database error while finding or creating user');
         }
     }
 }

@@ -11,7 +11,7 @@ const verifygoogleToken = async (req, res, next) => {
   const googleToken = req?.body.token;
   authLogger.info(googleToken, "googleToken");
   if (!googleToken)
-    throw new AppError({ status: 400, message: "google token absent" });
+    throw new AppError(400, "google token absent");
   try {
     const res = await client.verifyIdToken({
       idToken: googleToken,

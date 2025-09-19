@@ -18,7 +18,7 @@ const verifyJwtToken = async (req, res, next) =>{
             
             if (!authHeader) {
                 authLogger.error('Authorization header is required');
-                throw new AppError({ status: 401, message: 'Authorization header is required' });
+                throw new AppError(401, 'Authorization header is required');
             }
             authLogger.info('authHeader successfully extracted');
 
@@ -38,7 +38,7 @@ const verifyJwtToken = async (req, res, next) =>{
         authLogger.info(user,'user found');
         if (!user) {
             authLogger.error('User not found');
-            throw new AppError({ status: 401, message: 'User not found' });
+            throw new AppError(401, 'User not found');
         }
 
         // Attach user to request object
@@ -49,13 +49,21 @@ const verifyJwtToken = async (req, res, next) =>{
     } catch (error) {
         authLogger.error('Error in verifyAccessToken:', error);
         
-        if (error instanceof AppError) {
+        // Handle specific JWT errors
+        if (error.name === 'JsonWebTokenError') {
+            authLogger.error('Invalid JWT token');
+            next(new AppError(401, 'Invalid token format'));
+        } else if (error.name === 'TokenExpiredError') {
+            authLogger.error('JWT token expired');
+            next(new AppError(401, 'Token has expired'));
+        } else if (error.name === 'NotBeforeError') {
+            authLogger.error('JWT token not active');
+            next(new AppError(401, 'Token not yet valid'));
+        } else if (error instanceof AppError) {
             next(error);
         } else {
-            next(new AppError({ 
-                status: 401, 
-                message: 'Invalid or expired token' 
-            }));
+            authLogger.error('Unexpected error during token verification:', error);
+            next(new AppError(401, 'Authentication failed'));
         }
     }
 }
