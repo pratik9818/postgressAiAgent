@@ -2,12 +2,13 @@ import { CohereClient } from "cohere-ai";
 import { cohereModal, subscriptionModal } from "../utils/constant.js";
 import tokenModal from "./tokenModal.js";
 import { workerLogger } from "../logger/pino.js";
-
+import dotenv from "dotenv";
+dotenv.config();
 class TokenTracker {
   constructor() {
     this.llmModal = new CohereClient({
       // it is intializeing again and agian , has to add singleton pattern !
-      token: "OFdL2T9rZeenNeQkVItIoowM66YY429w0NISqIaf",
+      token: process.env.COHERE_TOKEN,
     });
     this.tokenModal = new tokenModal();
     this.TokenUsed = 0;

@@ -39,12 +39,11 @@ class Memory {
 
   async memoryContext() {
     try {
-      const chatSummary = await this.getSummary();
+      // const chatSummary = await this.getSummary();
 
       const lastChats = await this.getLastChats();
       
-      const context = `Conversation summary: ${chatSummary?.summary}
-    Recent chat history: ${lastChats.map((chat) => chat?.content).join("\n")}
+      const context = `Recent chat history: ${lastChats.map((chat) => chat?.content).join("\n")}
     Current user request: ${this.userQuery}
 `;
       return context;

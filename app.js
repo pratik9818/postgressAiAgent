@@ -8,14 +8,16 @@ import clientDbRoutes from './clientDbAuth/dbRoutes.js';
 import {appLogger} from './logger/pino.js';
 import realChatRoutes from './chat/routes.js';
 import verifyJwtToken from './auth/middleware/verifyJwtToken.js';
+import dotenv from 'dotenv';
+dotenv.config();
 // Load environment variables
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT;
 
 // Middleware
 app.use(cors({
-    origin: 'http://127.0.0.1:5500',
+    origin: process.env.FRONTEND_URL,
     credentials: true
 }));
 app.use(express.json());

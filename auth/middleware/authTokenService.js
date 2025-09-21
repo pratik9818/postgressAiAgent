@@ -1,11 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { AppError } from '../../utils/error.js';
 import { authLogger } from '../../logger/pino.js';
-
+import dotenv from 'dotenv';
+dotenv.config();
 class authTokenService {
     constructor() {
-        this.secretKey = process.env.JWT_SECRET || 'your-secret-key';
-        this.expiresIn = process.env.JWT_EXPIRES_IN || '24h';
+        this.secretKey = process.env.JWT_SECRET;
     }
 
     /**

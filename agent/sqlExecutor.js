@@ -1,10 +1,27 @@
-import ClientDatabase from "../clientDbAuth/dbService.js";
+import ClientDatabase from "#clientDbAuth/dbService.js";
 import SQLValidator from "./utils/SqlValidator.js";
 import { workerLogger } from "../logger/pino.js";
+import { Pool } from "pg";
+import Redis from "ioredis";
+import DbModel from "../clientDbAuth/dbModal.js";
 class SQLExecutor {
+  static maxPools = 50;
   constructor() {
     this.clientDatabase = new ClientDatabase();
     this.sqlValidator = new SQLValidator();
+    this.localPools = new Map();
+    this.redis = new Redis({ host: "localhost", port: 6379 });
+    this.dbModal = new DbModel();
+    // Subscribe to DB credentials updates
+    this.redis.subscribe("dbCredentialsUpdate");
+    this.redis.on("message", async (channel, userId) => {
+      if (channel === "dbCredentialsUpdate") {
+        workerLogger.info(
+          `Received credentials update for user ${userId}, deleting local pool`
+        );
+        await this.deleteUserPool(userId);
+      }
+    });
   }
   async executionBrain(functionName, sqlQuery, userId) {
     const sql = JSON.parse(sqlQuery);
@@ -25,7 +42,7 @@ class SQLExecutor {
 
   async readSql(sql, userId) {
     try {
-      const db = await this.clientDatabase.createConnection(userId);
+      const db = await this.createConnection(userId);
 
       if (!db) {
         workerLogger.error("Failed to create client database connection");
@@ -42,7 +59,7 @@ class SQLExecutor {
 
   async getUserDbSchema(userId) {
     try {
-      const db = await this.clientDatabase.createConnection(userId);
+      const db = await this.createConnection(userId);
 
       if (!db) {
         workerLogger.error("Failed to create client database connection");
@@ -51,7 +68,7 @@ class SQLExecutor {
       const res = await db.query(this.schemaQuery());
       return JSON.stringify(res.rows);
       
-    } catch (error) {
+    } catch (error) {      
       workerLogger.error(error, "error");
       throw error; // Re-throw the error so it can be handled by the caller
     }
@@ -69,6 +86,56 @@ WHERE a.attnum > 0
   AND n.nspname = 'public'
 GROUP BY c.relname
 ORDER BY c.relname;`;
+  }
+
+
+  // ------------------ Pool Management ------------------
+  async createConnection(userId) {
+    // 1️⃣ Check local cache first
+    if (this.localPools.has(userId)) return this.localPools.get(userId);
+
+    // 2️⃣ Fetch credentials from DB
+    const response = await this.dbModal.getDBCredentials(userId);
+    const creds = this.clientDatabase.decryptDBCredentials(response.dbCredentials);
+
+    // 3️⃣ Create a new Pool
+    const pool = new Pool({
+      user: creds.user,
+      host: creds.host,
+      database: creds.database,
+      password: creds.password,
+      port: creds.port,
+      max: 1, // adjust per user
+    });
+
+    // 4️⃣ Add to local cache
+    this.localPools.set(userId, pool);
+
+
+    // 6️⃣ Cleanup oldest pool if exceeding maxPools
+    if (this.localPools.size > SQLExecutor.maxPools) {
+      const oldestUserId = this.localPools.keys().next().value;
+      await this.deleteUserPool(oldestUserId);
+    }
+
+    return pool;
+  }
+
+  async deleteUserPool(userId) {
+    
+    if (this.localPools.has(userId)) {
+      const pool = this.localPools.get(userId);
+      await pool.end();
+      this.localPools.delete(userId);
+      workerLogger.info(`Deleted pool for user ${userId}`);
+    }
+  }
+
+  async cleanupPools() {
+    for (const [userId, pool] of this.localPools) {
+      await pool.end();
+    }
+    this.localPools.clear();
   }
 }
 

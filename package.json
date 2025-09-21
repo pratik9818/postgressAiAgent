@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "type": "module",
+  "imports": {
+    "#clientDbAuth/dbService.js": "./clientDbAuth/dbService.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --openssl-legacy-provider app.js",

@@ -7,7 +7,7 @@
 
 
 import express from 'express';
-import ClientDatabase from './dbService.js';
+import ClientDatabase from '#clientDbAuth/dbService.js';
 const route = express.Router();
 const clientDatabase = new ClientDatabase();
 //imp MIDDLEWARE to verify the token from auth folder and also need to refactor the code -- ***********

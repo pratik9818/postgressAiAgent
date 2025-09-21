@@ -1,10 +1,16 @@
 import { MongoClient } from 'mongodb';
-// import dotenv from 'dotenv';
 import {appLogger} from '../logger/pino.js'
-// dotenv.config();
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const url = '';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// Load .env from the project root
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
+
+const url = process.env.MAIN_DATABASE_URL;
 class Database {
     constructor() {
         // Simple connection without complex SSL options
@@ -52,4 +58,3 @@ const database = new Database()
 
 // Export the singleton instance
 export default database;
-

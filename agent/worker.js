@@ -6,7 +6,6 @@ import database from "../database/db.js";
 import SQLExecutor from "./sqlExecutor.js";
 import { workerLogger } from "../logger/pino.js";
 import TokenTracker from "../tokenTracker/tokenTracker.js";
-
 //NOTE - I THINK I SHOULD RETURN THE DB RESULT TO CLIENT IF TOKEN LIMIT EXCEED SO DESPITE THE SENDING ALL RESULT TO LLM IN CASE OF TOKEN LIMIT EXCEED JUST RETURN DATA DIRECTLY TO FROTEND --------------------------------
 
 // Queue monitoring and health check
@@ -176,6 +175,10 @@ const worker = new Worker(
         await job.updateProgress(10);
       } catch (error) {
         workerLogger.error("Failed to get memory context:", error);
+        if(error?.code == 'ETIMEDOUT'){
+          workerLogger.error("Failed to get memory context:", error);
+          throw new Error(`Please check your database credentials`);
+        }
         throw new Error(`Memory context error: ${error}`);
       }
 
@@ -284,7 +287,6 @@ const worker = new Worker(
         workerLogger.info(error, "result error");
         await job.updateProgress(60);
       } catch (error) {
-        workerLogger.error("Failed to execute SQL:", error);
         throw new Error(`SQL execution error: ${error}`);
       }
 
@@ -460,8 +462,6 @@ const worker = new Worker(
         workerLogger.error("Failed to save final response in db:", saveError);
         throw new Error(`Failed to save final response in db: ${saveError}`);
       }
-      console.log(globalToolCallRes);
-
       // Return structured error response
       return {
         success: false,

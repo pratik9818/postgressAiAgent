@@ -1,13 +1,13 @@
 import { CohereClientV2 } from "cohere-ai";
 import queryTool from "./tools.js";
-import dotenv from "dotenv";
 import { workerLogger } from "../logger/pino.js";
 import { cohereModal, rowLimit } from "../utils/constant.js";
+import dotenv from "dotenv";
 dotenv.config();
 class CohereLLM {
   constructor() {
     this.llmModal = new CohereClientV2({
-      token: "OFdL2T9rZeenNeQkVItIoowM66YY429w0NISqIaf",
+      token: process.env.COHERE_TOKEN,
     });
   }
 
