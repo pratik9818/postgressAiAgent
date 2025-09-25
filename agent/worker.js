@@ -163,9 +163,11 @@ const worker = new Worker(
           job.data.userid
         );
         memoryContext = await memory.memoryContext();
-        const schema = await sqlExecutor.getUserDbSchema(job.data.userid);
+        const {schema, tableData} = await sqlExecutor.getUserDbSchema(job.data.userid);
         memoryContext += `\n\nUser database schema: ${schema}`;
+        memoryContext += `\n\nUser database table data: ${tableData}`;
         workerLogger.info(memoryContext, "memory context");
+        
         await tokenTracker.track(
           job.data.userid,
           memoryContext,

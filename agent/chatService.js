@@ -62,7 +62,6 @@ class ChatService {
   async isUserHasDbCredentials(req, res, next) {
     const userId = req.userId;
     const ispersent = await this.chatModal.isUserHasDbCredentials(userId);
-    console.log(ispersent);
     if(!ispersent) {
       appLogger.error(userId,'user does not have db credentials');
       return res

@@ -65,8 +65,32 @@ class SQLExecutor {
         workerLogger.error("Failed to create client database connection");
         throw new Error("Failed to create database connection");
       }
+      const tablesRes = await db.query(`
+        SELECT tablename
+        FROM pg_tables
+        WHERE schemaname = 'public'
+      `);
+  
+      const samples = {};
+  
+      // Step 2: Loop over tables and get 1 row per table
+      
+  
+      // return samples;
       const res = await db.query(this.schemaQuery());
-      return JSON.stringify(res.rows);
+
+      for (const { tablename } of tablesRes.rows) {
+        try {
+          const rowRes = await db.query(`SELECT * FROM ${tablename} LIMIT 1`);
+          samples[tablename] = rowRes.rows[0] || null;
+        } catch (err) {
+          // Handle tables that may fail (e.g., permissions, empty)
+          samples[tablename] = null;
+          console.error(`Failed to fetch row from table ${tablename}:`, err.message);
+        }
+      }
+      
+      return {schema:JSON.stringify(res.rows), tableData:JSON.stringify(samples)}
       
     } catch (error) {      
       workerLogger.error(error, "error");
@@ -88,6 +112,7 @@ GROUP BY c.relname
 ORDER BY c.relname;`;
   }
 
+  
 
   // ------------------ Pool Management ------------------
   async createConnection(userId) {
