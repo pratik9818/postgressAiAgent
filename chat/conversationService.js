@@ -6,7 +6,7 @@ class ConversationService {
         this.chatModal = new ConversationModal();
     }
     async createConversation(req , res){
-        const userId = req.userId || '123123';
+        const userId = req.userId ;
         try {
             const result = await this.chatModal.createConversation(userId);
             appLogger.info(result , 'conversation created successfully');
@@ -69,7 +69,7 @@ class ConversationService {
     async deleteConversation(req,res){
         try {
             const { conversationId } = req.body;
-            const userId = req.userId || '123123';
+            const userId = req.userId;
             const result = await this.chatModal.deleteConversation(conversationId, userId);
             appLogger.info(result , 'conversation deleted successfully');
             res.status(200).json({

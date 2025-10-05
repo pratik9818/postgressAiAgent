@@ -10,29 +10,7 @@ class CohereLLM {
       token: process.env.COHERE_TOKEN,
     });
   }
-  // async getTableData(userQuery) {
-  //   try {
-  //     const response = await this.llmModal.chat({
-  //       model: cohereModal.currentModal,
-  //       messages: [
-  //         {
-  //           role: "system",
-  //           content: `generate sql query to get data from each table according to user query. this data then send to llm to generate `,
-  //         },
-  //         {
-  //           role: "user",
-  //           content: userQuery,
-  //         },
-  //       ],
-  //       tools: [queryTool],
-  //     });
-
-  //     return response;
-  //   } catch (error) {
-  //     workerLogger.error(error, "error in tool selection");
-  //     throw error;
-  //   }
-  // }
+  
   async toolSelection(userQuery) {
     try {
       const response = await this.llmModal.chat({
@@ -40,23 +18,39 @@ class CohereLLM {
         messages: [
           {
             role: "system",
-            content: `
-            You are an expert PostgreSQL SQL agent.
+            content: `You are a SQL query planner.
 
-Rules:
-1. For each user query, you will receive the user's query, the full database schema, and one sample row from each table. Analyze this information carefully. keep in mind that call tools once per user query.
-2. Only generate safe, read-only queries (SELECT only). Never use INSERT, UPDATE, DELETE, DROP, or DDL.
-3. Every query must include LIMIT ${rowLimit} unless explicitly asked for aggregates (e.g. COUNT, SUM, AVG).
-4. Handle JSON and JSONB fields carefully:
-   - Use '->' for JSON objects.
-   - Use '->>' for JSON text values.
-   - Cast JSON/JSONB properly when needed (e.g. ::jsonb, ::text, ::numeric).
-   - If filtering inside JSON, use operators like jsonb_extract_path_text, @>, or ? where appropriate.
-5. Resolve type mismatches by casting (e.g. CAST(column AS INTEGER), column::numeric).
-6. Always qualify ambiguous column names with their table alias.
-7. Do not explain the query, just return the SQL string.
-8. Ensure the query is syntactically valid PostgreSQL.
-            `,
+Your job is to analyze the user's natural language request and a list of available table names, and then decide which tables are relevant. 
+
+You must output a JSON object that includes:
+1. "needed_tables" → an array of table names that are likely required.
+2. "sql" → an array of SQL queries that will help fetch the necessary information about these tables. 
+   - For each needed table, include:
+     a) A query to get its schema (column names and types) from 'information_schema.columns'.
+     b) A query to fetch a small sample of data (e.g., 5 rows).
+
+### Rules:
+- Always return valid JSON only.
+- Do NOT generate insights or final SQL for answering the user’s question — just schema discovery queries.
+- Use table names exactly as given.
+- Be conservative: if unsure, include the table (better to fetch extra schemas than miss something).
+- Limit sample data queries with 'LIMIT 5'.
+
+### Example Input:
+User query: "Find the top 3 customers by revenue last month."
+Tables: ["users", "orders", "products", "reviews"]
+
+### Example Output:
+{
+  "needed_tables": ["users", "orders"],
+  "sql": [
+    "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'users';",
+    "SELECT * FROM users LIMIT 5;",
+    "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'orders';",
+    "SELECT * FROM orders LIMIT 5;"
+  ]
+}
+`
           },
           {
             role: "user",
@@ -64,8 +58,10 @@ Rules:
           },
         ],
         tools: [queryTool],
-      });
 
+        // schema tool , 
+      });
+      
       return response;
     } catch (error) {
       workerLogger.error(error, "error in tool selection");

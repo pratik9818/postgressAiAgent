@@ -73,7 +73,8 @@ class AuthModal {
                 last_login: new Date(),
                 created_at: new Date(),
                 updated_at: new Date(),
-                dbPassword: null
+                dbPassword: null,
+                isSchemaPersent:false
             };
             
             const result = await usersCollection.insertOne(userData);
@@ -127,7 +128,6 @@ class AuthModal {
                 // Update last login for existing user
                 await this.updateLastLogin(email);
             }
-            // console.log(user,'user2');
             return user;
         } catch (error) {
             authLogger.error('Error in findOrCreateUser:', error);

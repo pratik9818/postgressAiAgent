@@ -2,7 +2,7 @@ export default {
   type: "function",
   function: {
     name: "read_query",
-    description: "Run a SQL query on the PostgreSQL database.",
+    description: "generate sql queries bases on user query and tables name",
     parameters: {
       type: "object",
       properties: {

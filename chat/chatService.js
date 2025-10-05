@@ -30,8 +30,6 @@ class ChatService {
   async getchatDbdata(req, res) {
     const userId = req.userId;
     const { chatId } = req.query;
-    console.log(chatId);
-    
     if (!chatId)
       res.status(400).json({ message: "chatId id is required" });
     try {

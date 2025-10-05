@@ -26,8 +26,6 @@ class ChatModal {
             const res = await collection.findOne({ userId: userId, _id: new ObjectId(chatId) },{projection:{dbData:1}});
             return res;
         } catch (error) {
-            console.log(error);
-            
             throw new Error(error);
         }
     }

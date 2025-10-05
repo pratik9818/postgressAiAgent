@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import { Redis } from "ioredis";
-import Memory from "./memory.js";
+import VectorDatabase from "./memory.js";
 import CohereLLM from "./cohereLlm.js";
 import database from "../database/db.js";
 import SQLExecutor from "./sqlExecutor.js";
@@ -78,7 +78,7 @@ try {
 
 const cohereLlm = new CohereLLM();
 const sqlExecutor = new SQLExecutor();
-
+const memory = new VectorDatabase();
 // Worker Configuration Options
 const WORKER_CONFIG = {
   // Concurrency Options (choose one):
@@ -152,20 +152,24 @@ const worker = new Worker(
 
       // Get memory context
       workerLogger.info("getting memory context of", job.data.chatid);
-      let memory;
+
+      //checking for schema persent
+      await sqlExecutor.userTablesCheck(job.data.userid)
       let memoryContext;
 
       try {
-        memory = new Memory(
+        memoryContext = await memory.getChatMemory(
           job.data.conversationId,
           job.data.query,
           job.data.chatid,
           job.data.userid
         );
-        memoryContext = await memory.memoryContext();
-        const {schema, tableData} = await sqlExecutor.getUserDbSchema(job.data.userid);
-        memoryContext += `\n\nUser database schema: ${schema}`;
-        memoryContext += `\n\nUser database table data: ${tableData}`;
+        let allTablesNames = await memory.getTablesNameMemory(job.data.userid)
+        // memoryContext = await memory.memoryContext();
+        // const {schema, tableData} = await sqlExecutor.getUserDbSchema(job.data.userid);
+        // memoryContext += `\n\nUser database schema: ${schema}`;
+        memoryContext += `\n\nUser database all tables name: ${allTablesNames}`;
+        memoryContext += `\n\n User query is : ${job.data.query}`;
         workerLogger.info(memoryContext, "memory context");
         
         await tokenTracker.track(
@@ -177,10 +181,10 @@ const worker = new Worker(
         await job.updateProgress(10);
       } catch (error) {
         workerLogger.error("Failed to get memory context:", error);
-        if(error?.code == 'ETIMEDOUT'){
-          workerLogger.error("Failed to get memory context:", error);
-          throw new Error(`Please check your database credentials`);
-        }
+        // if(error?.code == 'ETIMEDOUT'){
+        //   workerLogger.error("Failed to get memory context:", error);
+        //   throw new Error(`Please check your database credentials`);
+        // }
         throw new Error(`Memory context error: ${error}`);
       }
 
@@ -313,6 +317,7 @@ const worker = new Worker(
           await tokenTracker.track(job.data.userid, "", "afterLLM", tokens);
           // Save error response
           try {
+          
             const savellmRes2 = await memory.saveLlmResponse(
               job.data.conversationId,
               job.data.userid,
@@ -411,6 +416,15 @@ const worker = new Worker(
       // Save final response in db
       workerLogger.info("saving final response in db");
       try {
+        const saveintoVector = await memory.saveMemory(
+          job.data.conversationId,
+          content.text,
+          job.data.chatid,
+          job.data.userid,
+          job.data.query
+        );
+        workerLogger.info(saveintoVector, "saved into vector");
+        
         const savellmRes2 = await memory.saveLlmResponse(
           job.data.conversationId,
           job.data.userid,
@@ -447,12 +461,12 @@ const worker = new Worker(
       // Try to save error message to conversation history
       try {
         if (job.data?.conversationId && job.data?.userid) {
-          const memory = new Memory(
-            job.data.conversationId,
-            job.data.query,
-            job.data.chatid,
-            job.data.userid
-          );
+          //   const memory = await memory.saveLlmResponse(
+          //   job.data.conversationId,
+          //   job.data.query,
+          //   job.data.chatid,
+          //   job.data.userid
+          // );
           await memory.saveLlmResponse(
             job.data.conversationId,
             job.data.userid,

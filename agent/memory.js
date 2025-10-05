@@ -1,57 +1,86 @@
 import ChatModal from "./chatModal.js";
 import {workerLogger} from "../logger/pino.js";
-class Memory {
-  constructor(conversationId, userQuery, chatId, userId) {
+import { Pinecone } from '@pinecone-database/pinecone'
+
+class VectorDatabase {
+  constructor() {
     this.chatModal = new ChatModal();
-    this.conversationId = conversationId;
-    this.userQuery = userQuery;
-    this.chatId = chatId;
-    this.userId = userId;
-    this.chatsLimit = 2;
+    this.vectorDatabase = new Pinecone({ apiKey: 'pcsk_5npzEy_RMBrnwMWUg6v9K7x962jwuSMKXW2K9yds2bK18KtQ74UEb5e3pfZ5wjcfWHXyg9' });
+    this.nameSpace = null;
+    this.indexName = 'sql-agent-memory';
+    this.indexHost = 'https://sql-agent-memory-9cch11b.svc.aped-4627-b74a.pinecone.io'
+    this.indexName2 = "user-tables-name";
+    this.indexHost2 =
+      "https://user-tables-name-9cch11b.svc.aped-4627-b74a.pinecone.io";
   }
-  async getDatabaseSchema() {
-    // here i have connect user db and get his db schema for more context - i have to think how to do this !
+
+   getNamespace(nameSpace) {
+    return this.vectorDatabase.index(this.indexName, this.indexHost).namespace(nameSpace);
   }
-  //get chat summary of conversation if persent;
-  async getSummary() {
+
+  async getChatMemory(conversationId, userQuery, chatId, userId){
+    const namespace = this.getNamespace(userId);
+    
     try {
-      return await this.chatModal.getChatSummary(this.conversationId);
-    } catch (error) {
-      workerLogger.error(error, "error in getting chat summary");
-      throw error;
-    }
-  }
-
-  //last 10 chat of that converstation;
-
-  async getLastChats() {
-    try {
-      return await this.chatModal.getChats(
-        this.conversationId,
-        this.userId,
-        this.chatsLimit
-      );
-    } catch (error) {
-      workerLogger.error(error, "error in getting last chats");
-      throw error;
-    }
-  }
-
-  async memoryContext() {
-    try {
-      // const chatSummary = await this.getSummary();
-
-      const lastChats = await this.getLastChats();
+      const {result} = await namespace.searchRecords({
+        query:{
+          topK:5,
+          inputs:{text:userQuery},
+          filter: {
+            category: conversationId   // only return vectors for this chat
+          }
+        },
+        fields:['text'],
+      })
+      // console.log(result?.hits.map(searchresult => searchresult?.fields?.text).join("\n"));
+      return result?.hits.map(searchresult => searchresult?.fields?.text).join("\n");
       
-      const context = `Recent chat history: ${lastChats.map((chat) => chat?.content).join("\n")}
-    Current user request: ${this.userQuery}
-`;
-      return context;
     } catch (error) {
-      workerLogger.error(error, "error in getting memory context");
-      throw error;
+      workerLogger.error('error','getting error in getting memory')
+      throw error
     }
   }
+  async getTablesNameMemory(userId){
+    const namespace = this.vectorDatabase.index(this.indexName2, this.indexHost2).namespace(userId);
+    
+    try {
+      const {result} = await namespace.searchRecords({
+        query: {
+          topK: 5,
+          inputs: { text: 'tables' },  // dummy text so Pinecone is happy
+          filter: {
+            category: userId
+          }
+        },
+        fields: ['text']
+      })
+      // console.log(result?.hits.map(searchresult => searchresult?.fields?.text).join("\n"));
+      console.log(result.hits.fields);
+      
+      return result?.hits?.fields?.text
+      
+    } catch (error) {
+      workerLogger.error('error','getting error in getting memory')
+      throw error
+    }
+  }
+  async saveMemory(conversationId, dbInsight, chatId, userId,userQuery){
+    const namespace = this.getNamespace(userId);
+    try {
+      await namespace.upsertRecords([
+        {
+          _id:`${userId}_${conversationId}_${chatId}`,
+          text: `user query : ${userQuery} and ai reponse : ${dbInsight}`,
+          category:conversationId
+        }
+      ])
+    } catch (error) {
+      console.log(error);
+      workerLogger.error('error','getting error in saving memory')
+      throw error
+    }
+  }
+  async deleteMemory(conversationId, chatId, userId){}
   async saveLlmResponse(conversationId, userId, role, content,dbData) {
     try {
       return await this.chatModal.saveLlmChat(
@@ -66,6 +95,36 @@ class Memory {
       throw error;
     }
   }
-  //user current query;
 }
-export default Memory;
+
+// class Memory {
+//   constructor(conversationId, userQuery, chatId, userId) {
+//     this.chatModal = new ChatModal();
+//     this.conversationId = conversationId;
+//     this.userQuery = userQuery;
+//     this.chatId = chatId;
+//     this.userId = userId;
+//     this.chatsLimit = 2;
+//     // this.nameSpace = vectorDatabase.index("INDEX_NAME", "INDEX_HOST").namespace("example-namespace");
+//   }
+  
+
+//   async memoryContext() {
+//     try {
+//       // const chatSummary = await this.getSummary();
+
+//       const lastChats = await this.getLastChats();
+      
+//       const context = `Recent chat history: ${lastChats.map((chat) => chat?.content).join("\n")}
+//     Current user request: ${this.userQuery}
+// `;
+//       return context;
+//     } catch (error) {
+//       workerLogger.error(error, "error in getting memory context");
+//       throw error;
+//     }
+//   }
+  
+//   //user current query;
+// }
+export default VectorDatabase;
