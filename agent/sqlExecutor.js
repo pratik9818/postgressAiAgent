@@ -94,8 +94,7 @@ class SQLExecutor {
       for (const { tablename } of tablesRes.rows) {
         allTablesName.push(tablename);
       }
-      await this.upsertTablesName(userId,allTablesName)
-      
+        await this.dbModal.updateTableNamesValue(userId ,allTablesName );
     } catch (error) {
       workerLogger.error(error, "error");
       throw error; // Re-throw the error so it can be handled by the caller
@@ -174,12 +173,10 @@ class SQLExecutor {
 
   async userTablesCheck(userId) {
     try {
-      const { isTablesNamePersent } = await this.dbModal.checkForTablesName(userId);
-      console.log(isTablesNamePersent);
-      // if (!isTablesNamePersent) {
+      const {tablesName} = await this.dbModal.getTablesName(userId);
+      if (!tablesName) {
         await this.getUserDBTables(userId);
-        await this.dbModal.updateTableNamesValue(userId);
-      // }
+      }
     } catch (error) {
       workerLogger.error(error, "error");
       throw error;

@@ -11,65 +11,112 @@ class CohereLLM {
     });
   }
   
-  async toolSelection(userQuery) {
+  async schemaSelectionLlm(context){
+    // const {prvChat , tablesName , userQuery} = context;
     try {
-      const response = await this.llmModal.chat({
+        const response = await this.llmModal.chat({
+            model: cohereModal.currentModal,
+            messages: [
+              {
+                role: "system",
+                content: `You are a SQL query planner.
+    
+    Your job is to analyze the user's natural language request and a list of available table names, and then decide which tables are relevant. 
+    
+    You must output a JSON object that includes:
+    1. "needed_tables" → an array of table names that are likely required.
+    2. "sql" → an array of SQL queries that will help fetch the necessary information about these tables. 
+       - For each needed table, include:
+         a) A query to get its schema (column names and types) from 'information_schema.columns'.
+         b) A query to fetch a small sample of data (e.g., 5 rows).
+    
+    ### Rules:
+    - Always return valid JSON only.
+    - Do NOT generate insights or final SQL for answering the user’s question — just schema discovery queries.
+    - Use table names exactly as given.
+    - Be conservative: if unsure, include the table (better to fetch extra schemas than miss something).
+    - Limit sample data queries with 'LIMIT 3'.
+    
+    ### Example Input:
+    User query: "Find the top 3 customers by revenue last month."
+    Tables: ["users", "orders", "products", "reviews"]
+    
+    ### Example Output:
+    {
+      "needed_tables": ["users", "orders"],
+      "sql": [
+        "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'users';",
+        "SELECT * FROM users LIMIT 3;",
+        "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'orders';",
+        "SELECT * FROM orders LIMIT 3;"
+      ]
+    }
+    `
+              },
+              {
+                role: "user",
+                content: context,
+              },
+            ],
+            tools: [queryTool],
+          });
+          console.log(response.message.content);
+          
+          return response;
+    } catch (error) {
+        workerLogger.error(error , 'error in schema selection llm')
+        throw error
+    }
+}
+
+// async sqlGeneratorLlm(){}
+
+  async sqlGeneratorLlm(toolid, result, messages, modalres, toolCalls) {
+    try {
+      const res = await this.llmModal.chat({
         model: cohereModal.currentModal,
         messages: [
           {
             role: "system",
-            content: `You are a SQL query planner.
+            content: `You are a data interpretation assistant.  
+The user asked a question that was converted into SQL and executed on their PostgreSQL database.  
 
-Your job is to analyze the user's natural language request and a list of available table names, and then decide which tables are relevant. 
+Your responsibilities:
+1. Analyze the SQL query and the result set together to understand what the data represents.  
+2. Interpret the results **in the context of the user’s original question** — not just in database terms.  
+3. Summarize findings in a clear, human-friendly way, highlighting **patterns, trends, anomalies, or key takeaways**.  
+4. Where useful, include **comparisons, percentages, averages, or counts** to make insights more meaningful.  
+5. Avoid repeating raw SQL or database jargon unless necessary; always explain in plain language.  
+6. If the result set is empty, explain possible reasons and suggest next steps (e.g., adjusting filters, checking data availability).  
+7. Keep your response concise but **insight-rich**, structured, and directly actionable for the user.  
 
-You must output a JSON object that includes:
-1. "needed_tables" → an array of table names that are likely required.
-2. "sql" → an array of SQL queries that will help fetch the necessary information about these tables. 
-   - For each needed table, include:
-     a) A query to get its schema (column names and types) from 'information_schema.columns'.
-     b) A query to fetch a small sample of data (e.g., 5 rows).
-
-### Rules:
-- Always return valid JSON only.
-- Do NOT generate insights or final SQL for answering the user’s question — just schema discovery queries.
-- Use table names exactly as given.
-- Be conservative: if unsure, include the table (better to fetch extra schemas than miss something).
-- Limit sample data queries with 'LIMIT 5'.
-
-### Example Input:
-User query: "Find the top 3 customers by revenue last month."
-Tables: ["users", "orders", "products", "reviews"]
-
-### Example Output:
-{
-  "needed_tables": ["users", "orders"],
-  "sql": [
-    "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'users';",
-    "SELECT * FROM users LIMIT 5;",
-    "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'orders';",
-    "SELECT * FROM orders LIMIT 5;"
-  ]
-}
-`
+                      `,
           },
           {
             role: "user",
-            content: userQuery,
+            content: messages,
+          },
+          {
+            role: "assistant",
+            content: modalres.message.content, // ✅ the generated assistant reply
+            toolCalls: toolCalls,
+          },
+          {
+            role: "tool",
+            toolCallId: toolid,
+            content: result,
           },
         ],
         tools: [queryTool],
-
-        // schema tool , 
       });
-      
-      return response;
+      return res;
     } catch (error) {
-      workerLogger.error(error, "error in tool selection");
+      workerLogger.error(error, "error in final llm modal response");
       throw error;
     }
   }
-
-  async llmModalResponse(toolid, result, messages, modalres, toolCalls) {
+  
+  async insightGeneratorLlm(toolid, result, messages, modalres, toolCalls) {
     try {
       const res = await this.llmModal.chat({
         model: cohereModal.currentModal,

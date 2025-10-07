@@ -86,5 +86,19 @@ class ChatModal {
       throw error;
     }
   }
+
+  async getUserDbTables(userId) {
+    try {
+      const collection = await this.getCollection("userDbCredentials");
+      const res = await collection.findOne(
+        { userId: userId },
+        {projection:{tablesName:1}}
+      );
+      return res;
+    } catch (error) {
+      workerLogger.error(error, "error in getting table name from db");
+      throw error;
+    }
+  }
 }
 export default ChatModal;

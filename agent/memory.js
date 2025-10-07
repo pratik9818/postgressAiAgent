@@ -41,26 +41,33 @@ class VectorDatabase {
     }
   }
   async getTablesNameMemory(userId){
-    const namespace = this.vectorDatabase.index(this.indexName2, this.indexHost2).namespace(userId);
+    // const namespace = this.vectorDatabase.index(this.indexName2, this.indexHost2).namespace(userId);
     
+    // try {
+    //   const {result} = await namespace.searchRecords({
+    //     query: {
+    //       topK: 5,
+    //       inputs: { text: 'tables' },  // dummy text so Pinecone is happy
+    //       filter: {
+    //         category: userId
+    //       }
+    //     },
+    //     fields: ['text']
+    //   })
+    //   // console.log(result?.hits.map(searchresult => searchresult?.fields?.text).join("\n"));
+    //   console.log(result.hits.fields);
+      
+    //   return result?.hits?.fields?.text
+      
+    // } catch (error) {
+    //   workerLogger.error('error','getting error in getting memory')
+    //   throw error
+    // }
     try {
-      const {result} = await namespace.searchRecords({
-        query: {
-          topK: 5,
-          inputs: { text: 'tables' },  // dummy text so Pinecone is happy
-          filter: {
-            category: userId
-          }
-        },
-        fields: ['text']
-      })
-      // console.log(result?.hits.map(searchresult => searchresult?.fields?.text).join("\n"));
-      console.log(result.hits.fields);
-      
-      return result?.hits?.fields?.text
-      
+      const res = await this.chatModal.getUserDbTables(userId)
+      return res.tablesName;
     } catch (error) {
-      workerLogger.error('error','getting error in getting memory')
+       workerLogger.error('error','getting error in getting memory')
       throw error
     }
   }

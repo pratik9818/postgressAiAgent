@@ -29,5 +29,6 @@ class ChatModal {
             throw new Error(error);
         }
     }
+    
 }
 export default ChatModal;

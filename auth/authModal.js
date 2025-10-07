@@ -74,7 +74,7 @@ class AuthModal {
                 created_at: new Date(),
                 updated_at: new Date(),
                 dbPassword: null,
-                isSchemaPersent:false
+                tablesName:[]
             };
             
             const result = await usersCollection.insertOne(userData);

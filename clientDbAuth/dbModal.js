@@ -1,6 +1,5 @@
 import database from "../database/db.js";
 import { appLogger } from "../logger/pino.js";
-import { ObjectId } from "mongodb";
 
 class DbModel {
   async getCollection(collectionName) {
@@ -74,26 +73,28 @@ class DbModel {
     }
   }
 
-  async checkForTablesName(userId){
+  async getTablesName(userId){
     try {
-      const collection = await this.getCollection('users')
+      const collection = await this.getCollection('userDbCredentials')
       const res = await collection.findOne(
-        {_id:new ObjectId(userId)},
-        {projection:{isTablesNamePersent:1}}
+        {userId:userId},
+        {projection:{tablesName:1}}
       )
-      return res
       
+      return res
     } catch (error) {
+      console.log(error);
+      
       appLogger.error(error);
       throw error;
     }
   }
-  async updateTableNamesValue(userId){
+  async updateTableNamesValue(userId, allTablesName){
     try {
-      const collection = await this.getCollection('users')
+      const collection = await this.getCollection('userDbCredentials')
       const res = await collection.updateOne(
-        {_id:new ObjectId(userId)},
-        {$set:{isTablesNamePersent:true}}
+        {userId:userId},
+        {$set:{tablesName:allTablesName}}
       )
       return res
       
